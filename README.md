@@ -1,0 +1,1 @@
+# atomistic_oscillator_strength
