@@ -1,2 +1,4 @@
 # ignore all .csv (pipeline outputs)
 *.csv
+# ignore all .svg (python plots)
+*.svg
