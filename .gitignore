@@ -9,4 +9,4 @@
 # all svg images
 *.svg
 # ignoring uploading some old notebooks
-post_analysis*.ipynb
+#post_analysis*.ipynb
