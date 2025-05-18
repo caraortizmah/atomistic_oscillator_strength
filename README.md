@@ -8,9 +8,11 @@ Here all the notebooks are intented to plot XAS directly from the ORCA outputs
 ### pop_matrices/
 
 Here notebooks take the outputs from the [x-ray_scripting_out](https://github.com/caraortizmah/x-ray_scripting_out) 
-repository (name will be changed soon) and calculate the atomistic oscillator strength.
+repository and calculate the electron transition density atomic contribution matrix.
 
-There are two specific examples however the general case of a template to to the postanalysis is in the folder:
+There are two specific examples for the pair amino acid system Phe-Tyr for the first 17 excited states (FY_1-17) and 
+for the first 26 excited states (newFY_1-26).
+The **standard case** of the postanalysis is the template in the folder:
 
 `Standard_analysis/` as `postanalysis_generalcase.ipynb` file.
 
