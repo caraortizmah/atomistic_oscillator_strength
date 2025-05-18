@@ -4,7 +4,13 @@
 Here notebooks take the outputs from the [x-ray_scripting_out](https://github.com/caraortizmah/x-ray_scripting_out) 
 repository (name will be changed soon) and calculate the atomistic oscillator strength.
 
-The correct folder to check: **newFY_1-26**
+Folder with the standard analysis: **Standard_analysis/**
+
+The folder replicating some of the results of the paper 
+*X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids*:
+<br> https://doi.org/10.1039/D4CP04615C
+are in the folder: **newFY_1-26**
+
 Older version of the analysis in the folder: FY_1-17
 Inside contains `post_analysis_FY_1-26.ipynb` which is the latest version of the heatmap plots.
 The other 3 notebooks will be removed in the following versions
