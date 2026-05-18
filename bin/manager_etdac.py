@@ -20,7 +20,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
 sys.path.insert(0, project_root)
 
-from qm_etdac_calculator import ConfigMan, 
+from qm_etdac_calculator import ConfigMan
 
 
 def main():
