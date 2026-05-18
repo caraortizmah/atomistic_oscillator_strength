@@ -2,7 +2,7 @@
 Excited-State Charge Transfer Calculator Program for X-ray Absorption Spectroscopy
 
 A package for calculating the Electron Transition Density Atomic Contribution (ETDAC)
-Matrix using the parsed data of the x-ray-quantumol-parser package.
+Matrix using the parsed data of the quantum-charge-transfer-calculator package.
 """
 
 __version__ = "1.0.0"
