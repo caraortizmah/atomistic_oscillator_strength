@@ -9,5 +9,6 @@ __version__ = "1.0.0"
 __author__ = "Carlos Ortiz-Mahecha"
 
 from .config import ConfigMan
+from . import cli
 
-__all__ = ["ConfigMan"]
+__all__ = ["ConfigMan", "cli"]
