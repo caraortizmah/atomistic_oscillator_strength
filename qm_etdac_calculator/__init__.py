@@ -8,6 +8,6 @@ Matrix using the parsed data of the x-ray-quantumol-parser package.
 __version__ = "1.0.0"
 __author__ = "Carlos Ortiz-Mahecha"
 
-from .config import ConfigManager
+from .config import ConfigMan
 
-__all__ = ["ConfigManager"]
+__all__ = ["ConfigMan"]
