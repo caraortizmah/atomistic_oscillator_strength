@@ -41,56 +41,95 @@ class ConfigMan:
     
     def __init__(
         self, 
-        corepop_files: str, 
-        virtualpop_files: str, 
-        etrans_files: str,
+        corepop_log_file: str, 
+        virtualpop_log_file: str, 
+        etrans_log_file: str,
+        logs_path: str,
         output_path: str):
         """
-        Initialize ConfigMan with transition and population files;
-          output path is optional.
+        Initialize ConfigMan with population files (core and virtual), 
+          electron transition file (core-virtual oscillator strength),
+          execution path and output path (same as execution path as defult).
         
         Args:
             
-            corepop_file: File of path lists having core MOs population files
-            virtualpop_file: File of path lists having virtual MOs population files
-            etrans_file: File of path lists having core-virtual e- transitions files
+            corepop_log_file: File of path lists having core MOs population files
+            virtualpop_log_file: File of path lists having virtual MOs population files
+            etrans_log_file: File of path lists having core-virtual e- transitions files
+            logs_path: Path to the log files (execution path by defult)
             output_path: Path to the H5 output file
         """
-        self.core_files = corepop_files
-        self.virtual_files = virtualpop_files
-        self.etrans_files = etrans_files
+        self.corelog_file = corepop_log_file
+        self.virtualog_file = virtualpop_log_file
+        self.etranslog_file = etrans_log_file
+        self.logs_path = logs_path
+        self.output_path = output_path
         self.errors: List[str] = []
         self.warnings: List[str] = []
     
-    def checker_path(self) -> bool:
+    def checker_outpath(self) -> bool:
         """
-        Check if path already exists.
+        Check if a path already exists.
         Output path is created if not exists
         
         Returns:
             bool: True if successful, False if errors occurred
         """
         if not os.path.isdir(self.output_path):
-            self.warnings.append(f"Output path not found: {self.output_path}, however it was created.")
+            self.warnings.append(f"Output path not found: {self.output_path}")
             return False
         
         return True
 
-    def checker_files(self, name_log: str, type_log:str) -> bool:
+    def checker_log_file(self, path) -> bool:
         """
-        Load csv files.
+        Check if a mandatory log file exists
         
         Returns:
             bool: True if successful, False if errors occurred
         """
-        self.name_log = name_log
-        self.type_log = type_log
-
-        self.path_log = os.path.join(self.input_path, self.name_log)
-
-        if not os.path.isfile(self.path_log):
-            self.errors.append(f"Log file {self.name_log} not found in path {self.path_log}")
+        if not os.path.isfile(path):
+            self.errors.append(f"Log file {path} not found")
             return False
         
+        try:
+            with open(path, 'r') as f:
+                f.read()
+            return True
+        except Exception as e:
+            self.errors.append(f"Failed to read log file: {str(e)}")
+            return False
+    
+    def checker_logs(self) -> bool:
+        """
+        Check if all log files exist and cand be read in the execution directory
+        
+        Returns:
+            bool: True if successful, False if errors occurred
+        """
+        
+        errors = 0
+
+        if not self.checker_log_file(os.path.join(self.logs_path, self.corelog_file)): errors += 1
+        
+        if not self.checker_log_file(os.path.join(self.logs_path, self.virtualog_file)): errors += 1
+        
+        if not self.checker_log_file(os.path.join(self.logs_path, self.etranslog_file)): errors += 1
+    
+        return errors == 0
+    
+    def load(self) -> bool:
+        """
+        Load the three log files.
+        
+        Returns:
+            bool: True if successful, False if errors occurred
+        """
+        if self.checker_logs():
+            print("Working")
+        else:
+            return self.checker_logs()
+        
         return True
+
     
