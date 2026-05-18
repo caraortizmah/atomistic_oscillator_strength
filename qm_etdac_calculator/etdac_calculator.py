@@ -34,18 +34,6 @@ resa_mocore_raw = load_dict_data('resA_MOcore_list.log', 'num-1')
 # resB virt MO - $$\boldsymbol{\text{N}}_{A^{\prime},a} $$
 resb_movirt_raw = load_dict_data('resB_MOvirt_list.log', 'num-1')
 
-# %%
-# Transition density state matrix $$ \rho^{n}_{ia} $$
-
-# %%
-# Transition density state matrix (core/virt MO) 
-#  as function of the number of transitions
-corevirtMO_raw = load_dict_data('corevirtMO_list.log', 'virt\core')
-
-# %%
-# Transition density state matrix (core/virt MO) 
-#  as function of the transitions averaged probability
-corevirtMO_tspb_raw = load_dict_data('corevirtMO_tspb_list.log', 'virt\core')
 
 # %%
 # Transition density state matrix (core/virt MO) 
