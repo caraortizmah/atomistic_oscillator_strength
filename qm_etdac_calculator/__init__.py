@@ -1,0 +1,13 @@
+"""
+Excited-State Charge Transfer Calculator Program for X-ray Absorption Spectroscopy
+
+A package for calculating the Electron Transition Density Atomic Contribution (ETDAC)
+Matrix using the parsed data of the x-ray-quantumol-parser package.
+"""
+
+__version__ = "1.0.0"
+__author__ = "Carlos Ortiz-Mahecha"
+
+from .config import ConfigManager
+
+__all__ = ["ConfigManager"]
