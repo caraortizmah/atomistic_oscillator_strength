@@ -41,7 +41,7 @@ def _get_script_path(script_name: str, subdir: str = "bin") -> Path:
 
 def run_qm_etdac_calculator() -> int:
     """
-    Entry point for 'qm-etdac-run' console script.
+    Entry point for 'qm-etdac' console script.
     Runs bin/manager_etdac.py with command-line arguments.
     Provides --help to display usage information.
     """
@@ -52,7 +52,7 @@ def run_qm_etdac_calculator() -> int:
 qm-etdac-calculator: Core-electron transition decomposition in atomic contributions program
 
 USAGE:
-    qm-etdac-run [options]
+    qm-etdac [options]
 
 This command calls bin/manager_etdac.py to run the program that calculates the 
 electron transition density atomic contribution (ETDAC) matrix.
@@ -64,7 +64,7 @@ For detailed information on usage, examples, and configuration, please see:
     - docs/installation.md: Installation instructions
 
 RELATED COMMANDS:
-    qm-etdacx-test      Run automated tests
+    qm-etdac-test      Run automated tests
 
 """
             print(help_msg)
@@ -77,3 +77,47 @@ RELATED COMMANDS:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+
+def run_qm_etdac_test() -> int:
+    """
+    Entry point for 'qm-etdac-test' console script.
+    Runs automated tests using tester.sh 
+    """
+    try:
+        print("=" * 60)
+        print("Running qm-etdac-calculator test ...")
+        print("=" * 60)
+        
+        tester_script = _get_script_path("tester.sh", "tests")
+        
+        # ongoing
+        print("\n[1/n] Testing test model...")
+        cmd1 = ["bash", str(tester_script)]
+        result1 = subprocess.run(cmd1, check=False)
+        
+        print("\n" + "=" * 60)
+        if result1.returncode == 0:
+            print("All tests passed!")
+        else:
+            print("Some tests failed. Please review the output above.")
+        print("=" * 60)
+        
+        # Return non-zero if any test failed
+        return max(result1.returncode)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    # For testing CLI entry points
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        if command == "test":
+            sys.exit(run_qm_etdac_test())
+        # TODO:
+        #elif command == "setup":
+        #    sys.exit(run_qm_etdac_setup())
+    
+    print("Usage: qm-etdac|qm-etdac-test [args]")
+    sys.exit(1)
