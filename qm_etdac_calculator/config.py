@@ -4,9 +4,9 @@ Configuration parameters for the electron transition decomposition atomic contri
 """
 
 import os
-#import re
+import re
 from typing import Dict, Optional, Tuple, List
-#from pathlib import Path
+from pathlib import Path
 
 
 class ConfigMan:
