@@ -15,7 +15,7 @@ def _get_script_path(script_name: str, subdir: str = "bin") -> Path:
     Get the absolute path to a shell script or Python script.
     
     Args:
-        script_name: Name of the script (e.g., 'etdac_calculator.py', 'gate_controled.py')
+        script_name: Name of the script (e.g., 'etdac_calculator.py', 'gate_controler.py')
         subdir: Subdirectory to search ('bin', 'tests')
         
     Returns:
@@ -70,7 +70,7 @@ RELATED COMMANDS:
             print(help_msg)
             return 0
         
-        script = _get_script_path("mannager_etdac.py", "bin")
+        script = _get_script_path("manager_etdac.py", "bin")
         result = subprocess.run([sys.executable, str(script)] + sys.argv[1:], check=False)
         return result.returncode
     except FileNotFoundError as e:
