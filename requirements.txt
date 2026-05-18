@@ -1,4 +1,4 @@
-# Development dependencies for x-ray-quantumol-parser
+# Development dependencies for qm-etdac-calculator
 
 # Testing
 pytest>=7.0
@@ -6,10 +6,10 @@ pytest-conv>=4.0
 pandas>=2.0
 
 # Build
-#build>=0.10.0
-#twine>=4.0.0
-#wheel>=0.38.0
+build>=0.10.0
+twine>=4.0.0
+wheel>=0.38.0
 
 # Documentation (optional)
-#sphinx>=5.0
-#sphinx-rtd-theme>=1.0
+sphinx>=5.0
+sphinx-rtd-theme>=1.0
