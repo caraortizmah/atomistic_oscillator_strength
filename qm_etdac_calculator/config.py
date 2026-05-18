@@ -36,38 +36,43 @@ class ConfigMan:
     }
 
     PATHS_PARAMS = {
-        'input_path': (str, None),
         'output_path': (str, None),
     }
     
-    def __init__(self, input_path: str, output_path: str):
+    def __init__(
+        self, 
+        corepop_files: str, 
+        virtualpop_files: str, 
+        etrans_files: str,
+        output_path: str):
         """
-        Initialize ConfigMan with input and output paths.
+        Initialize ConfigMan with transition and population files;
+          output path is optional.
         
         Args:
-            input_path: Path to the log files
+            
+            corepop_file: File of path lists having core MOs population files
+            virtualpop_file: File of path lists having virtual MOs population files
+            etrans_file: File of path lists having core-virtual e- transitions files
             output_path: Path to the H5 output file
         """
-        self.input_path = input_path
-        self.output_path = output_path
+        self.core_files = corepop_files
+        self.virtual_files = virtualpop_files
+        self.etrans_files = etrans_files
         self.errors: List[str] = []
         self.warnings: List[str] = []
     
     def checker_path(self) -> bool:
         """
-        Check if paths already exists.
-        input path MUST exists and output path is created if not exists
+        Check if path already exists.
+        Output path is created if not exists
         
         Returns:
             bool: True if successful, False if errors occurred
         """
-        if not os.path.isdir(self.input_path):
-            self.errors.append(f"Input path not found: {self.input_path}")
-            return False
-
         if not os.path.isdir(self.output_path):
-            self.warnings.append(f"Output path not found: {self.output_path}, input path: {self.input_path}, will be used instead")
-            self.output_path = self.input_path
+            self.warnings.append(f"Output path not found: {self.output_path}, however it was created.")
+            return False
         
         return True
 
