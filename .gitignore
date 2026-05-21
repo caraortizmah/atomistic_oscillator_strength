@@ -10,7 +10,6 @@
 *.svg
 
 # ===== Temporary & Log Files =====
-*.tmp
 *.log
 *.bak
 *.orig
@@ -23,14 +22,21 @@
 */*.csv
 */*.svg
 */*.ipynb
+*/*.ipynb_*
 */*.h5
+*/*.out.absq.dat
 */*/*.csv
 */*/*.svg
 */*/*.ipynb
+*/*/*.ipynb_*
 */*/*.h5
+*/*/*.out.absq.dat
 
 
 # ===== Python =====
+# temporary
+popmatrices/*/*.py
+# permanent ones
 __pycache__/
 *.py[cod]
 *$py.class
@@ -75,9 +81,12 @@ Thumbs.db
 input/*.*
 output/*.*
 output/*/
-pop_matrices/*/
+popmatrices/*/
 *.tar.gz
 *.zip
 
 # ===== Text Files (preserve docs) =====
 # *.txt excluded to keep documentation
+
+*/*.txt
+*/*/*.txt
