@@ -18,6 +18,18 @@
 *.swo
 *~
 
+# ===== Files in other auxilliary folders =====
+
+*/*.csv
+*/*.svg
+*/*.ipynb
+*/*.h5
+*/*/*.csv
+*/*/*.svg
+*/*/*.ipynb
+*/*/*.h5
+
+
 # ===== Python =====
 __pycache__/
 *.py[cod]
