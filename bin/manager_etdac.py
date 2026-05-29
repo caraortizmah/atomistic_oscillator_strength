@@ -22,6 +22,25 @@ sys.path.insert(0, project_root)
 
 from qm_etdac_calculator import ConfigMan
 
+def get_kwargs(dict, key, value):
+    return dict.update({key:value})
+
+def set_args_askwargs(dict={}, *args):
+    """
+    List information transformed in a dictionary.
+    Information in the list SHOULD come in order:
+    1: core population log file
+    2: virtual population log file
+    3: electron transition (core to virtual) log file
+    4: path of the three previous log files
+    5: path of the output
+    """
+    get_kwargs(dict, 'corepop',args[0])
+    get_kwargs(dict, 'virtpop',args[1])
+    get_kwargs(dict, 'etranscv',args[2])
+    get_kwargs(dict, 'logspath',args[3])
+    get_kwargs(dict, 'outputpath',args[4])
+    return dict
 
 def main():
     """Main entry point."""
@@ -48,9 +67,13 @@ def main():
     if not args.path_output:
         args.path_output = os.path.join(cwd, "etdac_results")
         print(f"Output folder will be called etdac_results/ in: {args.path_output}")
-
+    
+    args.list_run.append(cwd)
+    args.list_run.append(args.path_output)
+    print(set_args_askwargs({}, *args.list_run))
+    return 0
     # Load configuration
-    config = ConfigMan(args.list_run + cwd + args.path_output)
+    config = ConfigMan(args.list_run)
 
     if not config.checker_outpath():
         path_cmd = f"mkdir -p {args.path_output}"
