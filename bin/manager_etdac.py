@@ -22,6 +22,7 @@ project_root = os.path.dirname(script_dir)
 sys.path.insert(0, project_root)
 
 from qm_etdac_calculator import ConfigMan
+from qm_etdac_calculator import Scheme
 
 def get_kwargs(dict, key, value):
     return dict.update({key:value})
@@ -106,14 +107,15 @@ def main():
             #logger.error(f"Error executing ETDAC program: {str(e)}\n")
             print(f"Error creating path for the results: {str(e)}\n")
             return 1
-    
-    from qm_etdac_calculator import Scheme
 
     if config.load():
         #logger.info("="*70)
         #logger.info("ETDAC execution started")
         #logger.info("="*70)
-        print("ETDAC program will be executed")
+        print("Starting ETDAC program")
+
+        start_scheme = Scheme(**dict_args)
+
 
         #logger.error(f"Error executing ETDAC program: {str(e)}\n")
         #return 1
