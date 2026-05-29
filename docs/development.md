@@ -6,21 +6,18 @@ Additional information about the program work
 
 Read [../README.md](README.md) to understand how the program works.
 
-Go to the repository root and :
+Go to the repository, you should see folders such as `docs/`, `bin/`, `tests` and `qm_etdac_calculator`
+
+Then, to run `qm-etdac` type:
 
 ```bash
-cd qm_etdac_calculator
+python qm_etdac_calculator/cli.py 
 ```
 
-Then `qm-etdac` can be run as:
+and ro tun `qm-etdac-test` type:
 
 ```bash
-python cli.py 
+python qm_etdac_calculator/cli.py test
 ```
 
-and `qm-etdac-test` can be run as:
-
-```bash
-python cli.py test
-```
 
