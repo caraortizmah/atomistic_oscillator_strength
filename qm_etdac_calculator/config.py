@@ -17,27 +17,6 @@ class ConfigMan:
     Mandatory parameters: path_logs_files, path_etdac_h5_file
     Optional parameters: None
     """
-    MANDATORY_FLAGS = {
-        'Atom_number_range_A': str,
-        'Atom_number_range_B': str,
-        'core_MO_range': str,
-        'exc_state_range': str,
-        'soc_option': int,
-        'orca_output': str,
-    }
-    
-    OPTIONAL_FLAGS = {
-        'spectra_option': (int, 0),
-        'external_MO_file': (str, None),
-        'atm_core': (str, 'C'),
-        'wave_f_type': (str, 's'),
-        'input_path': (str, None),
-        'output_path': (str, None),
-    }
-
-    PATHS_PARAMS = {
-        'output_path': (str, None),
-    }
     
     def __init__(self, **kwargs: str):
         """
