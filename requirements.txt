@@ -3,7 +3,10 @@
 # Testing
 pytest>=7.0
 pytest-conv>=4.0
+
+# Data
 pandas>=2.0
+h5py>=3.8
 
 # Build
 build>=0.10.0
