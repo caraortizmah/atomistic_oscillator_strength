@@ -13,6 +13,7 @@ import os
 import sys
 import subprocess
 import argparse
+import json
 from pathlib import Path
 
 # Add package to path - handle both direct execution and via symlink
@@ -47,45 +48,43 @@ def main():
     parser = argparse.ArgumentParser(
         description="Excited State Charge Transfer Calculator Program - Options Helper"
     )
-    subparsers = parser.add_subparsers(dest='comand', required=True)
 
+    parser.add_argument('mode', choices=['noauto', 'auto'])
     # Mode 1: Using --list-run and --path-output
-    parser_mode1 = subparsers.add_parser('noauto')
-    parser_mode1.add_argument('--list-input', 
+    parser.add_argument('--list-input', 
     nargs=3, 
     default=[],
     help="Use three log files containing list of path files with core and virtual population and electron transition"
     )
-    parser_mode1.add_argument('--paths-inout',
+    parser.add_argument('--paths-inout',
     nargs='+',
     default=[],
     help="Provide the path of the log files and (optional) path of the ETDAC results."
     )
-
+    
     #Mode 2: By reading JSON file
-    parser_mode2 = subparsers.add_parser('auto')
-    parser_mode2.add_argument('filename')
+    parser.add_argument('auto', nargs='?')
 
     args = parser.parse_args()
 
-    if args.command == 'noauto':
+    if args.mode == 'noauto':
         if not args.list_input:
             args.list_input = ["", "", ""]
     
         if len(args.paths_inout) == 1:
             cwd = os.getcwd()
-            args.paths_inout = os.path.join(cwd, "etdac_results")
-            print(f"Output folder will be called etdac_results/ in: {args.paths_inout}\n")
+            missing_path = os.path.join(cwd, "etdac_results")
+            args.paths_inout.append(missing_path)
+            print(f"Output folder will be called etdac_results/ in: {missing_path}\n")
 
-        args_list = [*args.list_input, *args.paths_inout]
-        
-        dict_args = set_args_askwargs({}, *args.list_input)
+        args_list = [*args.list_input, *args.paths_inout]        
+        dict_args = set_args_askwargs({}, *args_list)
         print(f"Arguments that will be used were configured as: {dict_args}\n")
     else:
-        args.filename
-
-    
-    a
+        # Read JSON (which becomes a dictionary)
+        with open(args.auto, 'r') as jsonf:
+            dict_args = json.load(jsonf)  # Returns a dict
+        print(f"Arguments that will be used were configured from file {args.auto} as: {dict_args}\n ")
 
     # Load configuration
     config = ConfigMan(**dict_args)
