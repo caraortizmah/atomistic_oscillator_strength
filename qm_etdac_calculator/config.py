@@ -70,7 +70,7 @@ class ConfigMan:
             bool: True if successful, False if errors occurred
         """
         if not os.path.isdir(self.output_path):
-            self.warnings.append(f"Output path not found: {self.output_path}")
+            self.warnings.append(f"Output path not found: {self.output_path}. ")
             return False
         
         return True
@@ -83,7 +83,7 @@ class ConfigMan:
             bool: True if successful, False if errors occurred
         """
         if not os.path.isfile(path):
-            self.errors.append(f"Log file {path} not found")
+            self.errors.append(f"Log file {path} not found.\n")
             return False
         
         try:
@@ -91,7 +91,7 @@ class ConfigMan:
                 f.read()
             return True
         except Exception as e:
-            self.errors.append(f"Failed to read log file: {str(e)}")
+            self.errors.append(f"Failed to read log file: {str(e)}\n")
             return False
     
     def checker_logs(self) -> bool:
