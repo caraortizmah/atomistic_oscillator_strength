@@ -6,7 +6,7 @@ This script reads configuration from config.info and executes the pipeline
 with proper validation, logging, and error handling.
 
 Usage:
-    ./manager_etdac.py [--single-run] [--list-run]
+    ./manager_etdac.py [--list-inputs [LIST_INPUTS... ]] [--path-output PATH_OUTPUT]
 """
 
 import os
@@ -47,31 +47,45 @@ def main():
     parser = argparse.ArgumentParser(
         description="Excited State Charge Transfer Calculator Program - Options Helper"
     )
-    parser.add_argument('--list-run',
-    nargs='*',
+    subparsers = parser.add_subparsers(dest='comand', required=True)
+
+    # Mode 1: Using --list-run and --path-output
+    parser_mode1 = subparsers.add_parser('noauto')
+    parser_mode1.add_argument('--list-input', 
+    nargs=3, 
     default=[],
-    help="Run program for a list of n molecules: n sets of excited-state files")
-    parser.add_argument('--path-output',
-    help="Save the ETDAC results in the output path.")
+    help="Use three log files containing list of path files with core and virtual population and electron transition"
+    )
+    parser_mode1.add_argument('--paths-inout',
+    nargs='+',
+    default=[],
+    help="Provide the path of the log files and (optional) path of the ETDAC results."
+    )
+
+    #Mode 2: By reading JSON file
+    parser_mode2 = subparsers.add_parser('auto')
+    parser_mode2.add_argument('filename')
 
     args = parser.parse_args()
-    cwd = os.getcwd()
-    
-    if not args.list_run:
-        args.list_run = [
-            "",
-            "",
-            ""
-            ]
 
-    if not args.path_output:
-        args.path_output = os.path.join(cwd, "etdac_results")
-        print(f"Output folder will be called etdac_results/ in: {args.path_output}\n")
+    if args.command == 'noauto':
+        if not args.list_input:
+            args.list_input = ["", "", ""]
     
-    args.list_run.append(cwd)
-    args.list_run.append(args.path_output)
-    dict_args = set_args_askwargs({}, *args.list_run)
-    print(f"Arguments that will be used were configured as: {dict_args}\n")
+        if len(args.paths_inout) == 1:
+            cwd = os.getcwd()
+            args.paths_inout = os.path.join(cwd, "etdac_results")
+            print(f"Output folder will be called etdac_results/ in: {args.paths_inout}\n")
+
+        args_list = [*args.list_input, *args.paths_inout]
+        
+        dict_args = set_args_askwargs({}, *args.list_input)
+        print(f"Arguments that will be used were configured as: {dict_args}\n")
+    else:
+        args.filename
+
+    
+    a
 
     # Load configuration
     config = ConfigMan(**dict_args)
@@ -95,7 +109,7 @@ def main():
         print(f"Error creating path for the results: {str(e)}\n")
         return 1
     
-    from qm_etdac_calculator import scheme
+    from qm_etdac_calculator import Scheme
 
     if config.load():
         #logger.info("="*70)
