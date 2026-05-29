@@ -32,7 +32,7 @@ The third type of information is an intermediate step. Find further about it in 
 
 the second two files (`--paths-inout` group) are the path where the three log files of the first group are placed and the path were the output of the calculation in H5 format will be placed.
 
-More information regarding the formats of these files in [examples folder](../examples/).
+More information regarding the formats of these files in [examples folder](../test/examples/).
 
 ### 2. auto mode
 
