@@ -76,30 +76,36 @@ def main():
     # Load configuration
     config = ConfigMan(**dict_args)
 
-    if not config.checker_outpath():
-        path_cmd = f"mkdir -p {args.path_output}"
-        print(f"Path will be created: {args.path_output}")
-
     if not config.load():
         #logger.error("Failed to load configuration")
         #logger.error(f"Errors: {', '.join(config.errors)}")
-        print("Failed to load necessary files or there is a missing file")
+        print("Failed to load necessary files or there is a missing file:")
         print(f"Errors: {', '.join(config.errors)}")
         return 1
-    
+
+    if not config.checker_outpath():
+        path_cmd = f"mkdir -p {args.path_output}"
+        print(f"New path will be created: {args.path_output}\n")
 
     try:
         subprocess.run(path_cmd, shell=True, check=False)
+            
+    except Exception as e:
+        #logger.error(f"Error executing ETDAC program: {str(e)}\n")
+        print(f"Error creating path for the results: {str(e)}\n")
+        return 1
+    
+    from qm_etdac_calculator import ConfigMan
+
+    if config.load():
         #logger.info("="*70)
         #logger.info("ETDAC execution started")
         #logger.info("="*70)
-  
-        if config.load():
-            print("ETDAC program will be executed")
-            
-    except Exception as e:
-        logger.error(f"Error executing ETDAC program: {str(e)}\n")
-        return 1
+        print("ETDAC program will be executed")
+
+        #logger.error(f"Error executing ETDAC program: {str(e)}\n")
+        #return 1
+        
 
 if __name__ == "__main__":
     sys.exit(main())
