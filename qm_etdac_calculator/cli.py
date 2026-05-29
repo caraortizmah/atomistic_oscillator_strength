@@ -69,7 +69,7 @@ RELATED COMMANDS:
 """
             print(help_msg)
             return 0
-        
+
         script = _get_script_path("manager_etdac.py", "bin")
         result = subprocess.run([sys.executable, str(script)] + sys.argv[1:], check=False)
         return result.returncode
@@ -112,7 +112,6 @@ def run_qm_etdac_test() -> int:
 
 if __name__ == "__main__":
     # For testing CLI entry points
-    if len(sys.argv) == 1: sys.exit(run_qm_etdac_calculator())
     if len(sys.argv) > 1:
         command = sys.argv[1]
         if command == "test":
@@ -120,6 +119,8 @@ if __name__ == "__main__":
         # TODO:
         #elif command == "setup":
         #    sys.exit(run_qm_etdac_setup())
+        else:
+            sys.exit(run_qm_etdac_calculator())
     
     print("Usage: qm-etdac|qm-etdac-test [args]")
     sys.exit(1)
