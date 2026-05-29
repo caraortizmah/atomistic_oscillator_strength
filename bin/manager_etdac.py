@@ -95,7 +95,7 @@ def main():
         print(f"Error creating path for the results: {str(e)}\n")
         return 1
     
-    from qm_etdac_calculator import ConfigMan
+    from qm_etdac_calculator import scheme
 
     if config.load():
         #logger.info("="*70)
