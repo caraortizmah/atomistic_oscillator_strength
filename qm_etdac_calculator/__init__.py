@@ -10,5 +10,6 @@ __author__ = "Carlos Ortiz-Mahecha"
 
 from .config import ConfigMan
 from . import cli
+from .etdac_calculator import Scheme
 
 __all__ = ["ConfigMan", "cli"]
