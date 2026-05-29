@@ -66,14 +66,15 @@ def main():
 
     if not args.path_output:
         args.path_output = os.path.join(cwd, "etdac_results")
-        print(f"Output folder will be called etdac_results/ in: {args.path_output}")
+        print(f"Output folder will be called etdac_results/ in: {args.path_output}\n")
     
     args.list_run.append(cwd)
     args.list_run.append(args.path_output)
-    print(set_args_askwargs({}, *args.list_run))
-    return 0
+    dict_args = set_args_askwargs({}, *args.list_run)
+    print(f"Arguments that will be used were configured as: {dict_args}\n")
+
     # Load configuration
-    config = ConfigMan(args.list_run)
+    config = ConfigMan(**dict_args)
 
     if not config.checker_outpath():
         path_cmd = f"mkdir -p {args.path_output}"
@@ -97,7 +98,7 @@ def main():
             print("ETDAC program will be executed")
             
     except Exception as e:
-        logger.error(f"Error executing ETDAC program: {str(e)}")
+        logger.error(f"Error executing ETDAC program: {str(e)}\n")
         return 1
 
 if __name__ == "__main__":
