@@ -111,6 +111,7 @@ def run_qm_etdac_test() -> int:
 
 if __name__ == "__main__":
     # For testing CLI entry points
+    if len(sys.argv) == 1: sys.exit(run_qm_etdac_calculator())
     if len(sys.argv) > 1:
         command = sys.argv[1]
         if command == "test":
