@@ -98,6 +98,7 @@ def run_qm_etdac_test() -> int:
         print("\n" + "=" * 60)
         if result1.returncode == 0:
             print("All tests passed!")
+            return result1.returncode
         else:
             print("Some tests failed. Please review the output above.")
         print("=" * 60)
