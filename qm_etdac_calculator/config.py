@@ -39,31 +39,25 @@ class ConfigMan:
         'output_path': (str, None),
     }
     
-    def __init__(
-        self, 
-        corepop_log_file: str, 
-        virtualpop_log_file: str, 
-        etrans_log_file: str,
-        logs_path: str,
-        output_path: str):
+    def __init__(self, **kwargs: str):
         """
         Initialize ConfigMan with population files (core and virtual), 
           electron transition file (core-virtual oscillator strength),
           execution path and output path (same as execution path as defult).
         
-        Args:
+        kwargs:
             
-            corepop_log_file: File of path lists having core MOs population files
-            virtualpop_log_file: File of path lists having virtual MOs population files
-            etrans_log_file: File of path lists having core-virtual e- transitions files
-            logs_path: Path to the log files (execution path by defult)
-            output_path: Path to the H5 output file
+            'corepop': corepop_log_file =  File of path lists having core MOs population files
+            'virtpop': virtualpop_log_file = File of path lists having virtual MOs population files
+            'etranscv': etrans_log_file = File of path lists having core-virtual e- transitions files
+            'logspath': logs_path = Path to the log files (execution path by defult)
+            'outputpath': output_path = Path to the H5 output file
         """
-        self.corelog_file = corepop_log_file
-        self.virtualog_file = virtualpop_log_file
-        self.etranslog_file = etrans_log_file
-        self.logs_path = logs_path
-        self.output_path = output_path
+        self.corelog_file = kwargs['corepop']
+        self.virtualog_file = kwargs['virtpop']
+        self.etranslog_file = kwargs['etranscv']
+        self.logs_path = kwargs['logspath']
+        self.output_path = kwargs['outputpath']
         self.errors: List[str] = []
         self.warnings: List[str] = []
     
@@ -126,10 +120,7 @@ class ConfigMan:
             bool: True if successful, False if errors occurred
         """
         if self.checker_logs():
-            print("Working")
+            #call gate_controler.py
+            return True
         else:
             return self.checker_logs()
-        
-        return True
-
-    
