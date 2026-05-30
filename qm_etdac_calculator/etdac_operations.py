@@ -1,4 +1,12 @@
-# %%
+"""
+Algebra operations that enables the electron transition decomposition atomic contribution
+(ETDAC) calculation.
+
+Read  https://doi.org/10.1039/D4CP04615C : 
+"X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids"
+for further information
+"""
+
 import numpy as np
 import pandas as pd
 import csv as csv
