@@ -126,11 +126,6 @@ def crop_by_loewdin_p(df,pop):
     return df[cols] #showing the fisrt two columns and those having population greater than pop*100%
 
 # %%
-def nonzero_mo_matrix(df):
-    """
-    it returns MO matrix (df) having just non-zero MO population.
-    """
-    return df.loc[:, (df != 0).any(axis=0)] #removing zero columns
 
 # %%
 def cropping_matrix(df, df1, df2):
