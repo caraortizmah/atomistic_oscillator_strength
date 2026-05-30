@@ -139,7 +139,43 @@ class Operations:
                     })
         return heatmap_raw
 
-
+    def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False):
+        """
+    Do a matrix multiplication between the core-to-virt transition 
+    probabilities matrix and the core MO matrix, then the resulting matrix
+    is multiplied by the virtual MO matrix.
+    if atm_to_virtmo is True, then the two resulting matrices in the 
+    multiplication process are returned.
+    By the default, just the last matrix is returned.
+        """
+        abcorevirt.index = abcorevirt.index.astype('str') 
+        #to make possible the dot product in pandas, the indexes involved in each
+        #product have to "match" in name and type
+    
+        i = j = 0
+        dff = pd.DataFrame(np.zeros((acore.shape[0], abcorevirt.shape[0])), \
+                    index=acore.index, columns=abcorevirt.index)
+        for j in range(abcorevirt.shape[1]):
+            for i in range(acore.shape[1]):
+                try:
+                    dff += acore.T[i:i+1].T.dot(abcorevirt.iloc[:].T[j:j+1])
+                except:
+                    pass        
+        dff = dff/100
+        i = j = 0
+        dff2 = pd.DataFrame(np.zeros((dff.shape[0], bvirt.shape[0])), \
+                    index=dff.index, columns=bvirt.index)
+        for i in range(dff.shape[1]):
+            for j in range(bvirt.shape[1]):
+                try:
+                    dff2 += dff.T[i:i+1].T.dot(bvirt.T[j:j+1])
+                except:
+                    pass
+    
+        if atm_to_virtmo:
+            return dff, dff2
+        else:
+            return dff2
 
 def selecting_atm_matrix(df, atoms_list):
     """
@@ -197,44 +233,7 @@ def cropping_matrix(df, df1, df2):
 # ##### Building heatmaps of $\tilde{\gamma}^{[l,m]}_{AA^{\prime}}$
 
 # %%
-def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False):
-    """
-    Do a matrix multiplication between the core-to-virt transition 
-    probabilities matrix and the core MO matrix, then the resulting matrix
-    is multiplied by the virtual MO matrix.
-    if atm_to_virtmo is True, then the two resulting matrices in the 
-    multiplication process are returned.
-    By the default, just the last matrix is returned.
-    """
-    abcorevirt.index = abcorevirt.index.astype('str') 
-    #to make possible the dot product in pandas, the indexes involved in each
-    #product have to "match" in name and type
-    
-    i = j = 0
-    dff = pd.DataFrame(np.zeros((acore.shape[0], abcorevirt.shape[0])), \
-                       index=acore.index, columns=abcorevirt.index)
-    for j in range(abcorevirt.shape[1]):
-        for i in range(acore.shape[1]):
-            try:
-                dff += acore.T[i:i+1].T.dot(abcorevirt.iloc[:].T[j:j+1])
-            except:
-                pass
-            
-    dff = dff/100
-    i = j = 0
-    dff2 = pd.DataFrame(np.zeros((dff.shape[0], bvirt.shape[0])), \
-                        index=dff.index, columns=bvirt.index)
-    for i in range(dff.shape[1]):
-        for j in range(bvirt.shape[1]):
-            try:
-                dff2 += dff.T[i:i+1].T.dot(bvirt.T[j:j+1])
-            except:
-                pass
-    
-    if atm_to_virtmo:
-        return dff, dff2
-    else:
-        return dff2
+
 
 # %%
 
