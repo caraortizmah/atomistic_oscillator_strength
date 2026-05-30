@@ -70,6 +70,29 @@ class Scheme:
         if not (self.data['corepop'] or self.data['virtualpop'] or self.data['etrans']):
             return False
         return True
+    
+    def run(self) -> Bool:
+        """
+        Calls Operations class and calculates ETDAC
+        """
+        self.data = Operations()
+        self.data.report_trimmed('corepop')
+        self.data.report_trimmed('virtualpop')
+        
+        # Perform ETDAC calculation
+        self.etdac = self.data.calculate_etdac()
+        if self.is_etdac():
+            print(f"ETDAC calculation finished")
+            return True
+        else:
+            self.errors.append(f"Something went wrong during ETDAC calculation. Do a diagnosis.\n")
+            return False
+    
+    def is_etdac(self) -> Bool:
+        return True if self.etdac else False
+
+    def save():
+        return True
 
 
 #resa_mocore_raw = load_dict_data('resA_MOcore_list.log', 'num-1')
