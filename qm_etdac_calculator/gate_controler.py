@@ -85,7 +85,7 @@ class Loader:
         #condition
         return True
         
-    def get_dict_data(self, filename: str =log_file, index_col_condition='num-1') -> {}:
+    def get_dict_data(self, filename: str =log_file, index_col_condition='num-1') -> Dict:
         """
     Reads from a two-column file the hash and the file and
      stores the information of the csv file into a dictionary.
