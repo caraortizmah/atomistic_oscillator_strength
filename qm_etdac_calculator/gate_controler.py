@@ -115,12 +115,12 @@ class Controler:
                 })
         return dict_raw
     
-    def save_ETDAC_matrix(data_dict, data_set_name="data_etdac_matrix.h5"):
+    def save_ETDAC_matrix(self, data_dict: Dict, data_set_name: str='data_etdac_matrix.h5') -> Bool:
         """
         Get the node/edge features for each molecule and save
         all the results in H5PY format.
         Args:
-        data_dict (dict) contains a hash (key) and 
+        self is data_dict (dict) contains a hash (key) and 
         the ETDAC matrix (value) of each molecule.
         data_set_name (str, optional) is the name of the H5PY file to be
         created. By default that file is called "data_etdac_matrix.h5".
@@ -143,4 +143,4 @@ class Controler:
             return True
         except Exception as e:
             self.errors.append(f"Failed to save calculated ETDAC in a H5 file: {str(e)}\n")    
-            return False 
+            return False
