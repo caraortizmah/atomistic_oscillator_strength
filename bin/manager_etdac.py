@@ -114,8 +114,31 @@ def main():
         #logger.info("="*70)
         print("Starting ETDAC program")
 
-        start_scheme = Scheme(**dict_args)
+        etdac_scheme = Scheme(**dict_args)
+        etdac_scheme.opendata()
+        if not etdac_scheme.opendata():
+            print(f"There is something wrong in the data inside any if the log files\n")
+            print(f"Run a diagnosis (only auto mode) as: qm-etdac check json_file\n")
+            return 1
+        etdac_scheme.data = Operations()
+        # initiatilze etdac_scheme.data.trim_data() in operations
+        
+        # move this inside operations
+        #if not etdac_scheme.data.is_trimmed():
+        #    print(f"There were not found non-contributing MOs\n")
+        #else:
+        #    print(f"There were found non-contributing MOs\n")
+        #    print(f"Non-contributing MOs are not considered in the ETDAC calculation\n")   
 
+        #etdac_scheme.data.trim.format()
+
+        etdac_scheme.savedata(etdac_scheme.data.calculate_etdac())
+ #       etdac_scheme.data['corepop']
+  #      start_scheme.trim_data['corepop']
+        #data in:
+        etdac_scheme.etdac.to_h5()
+
+        return 0
 
         #logger.error(f"Error executing ETDAC program: {str(e)}\n")
         #return 1
