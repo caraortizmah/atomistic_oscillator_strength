@@ -120,22 +120,21 @@ def main():
             print(f"There is something wrong in the data inside any if the log files\n")
             print(f"Run a diagnosis (only auto mode) as: qm-etdac check json_file\n")
             return 1
-        etdac_scheme.data = Operations()
-        # initiatilze etdac_scheme.data.trim_data() in operations  
-
-        #etdac_scheme.data.trim.format()
-
-        etdac_scheme.savedata(etdac_scheme.data.calculate_etdac())
- #       etdac_scheme.data['corepop']
-  #      start_scheme.trim_data['corepop']
-        #data in:
-        etdac_scheme.etdac.to_h5()
-
-        return 0
+        #etdac_scheme.data = Operations()
+        etdac_scheme.run()
+        if len(etdac_scheme.errors) >= 1:
+            print(f"ETDAC program finished abnormally\n")
+            return 1
+        
+        if etdac_scheme.save('data_etdac_matrix.h5'):
+            print(f"ETDAC program finished normally\n")
+            return 0
+        else:
+            print(f"ETDAC program finished abnormally\n")
+            return 1
 
         #logger.error(f"Error executing ETDAC program: {str(e)}\n")
-        #return 1
-        
+        #     
 
 if __name__ == "__main__":
     sys.exit(main())
