@@ -68,11 +68,28 @@ class Operations:
             dict_data.update({key: nonzero_mo_matrix(value)})
         return dict_data
     
-    def is_trimmed(self, key: str = 'core') -> bool:
+    def is_trimmed(self, key: str = 'corepop') -> bool:
         if not self[key] == trim_data[key]:
             return True
+        return False
     
-    def is_empty(self, key: str = 'core') -> bool:
+    def report_trimmed(self, key: str = 'corepop') -> bool:
+        
+        typemo = 'core' if key == 'corepop' else 'virtual' if key == 'virtualpop' else 'error'
+
+        if typemo == 'error':
+            printf(f"Wrong key assignment: use only 'corepop' or 'virtualpop'\n")
+            return False
+
+        if self.is_trimmed(key):
+            print(f"There were found non-contributing {typemo} MOs\n")
+            print(f"Non-contributing {typemo} MOs are not considered in the ETDAC calculation\n")
+        else:
+            print(f"There were not found non-contributing {typemo} MOs\n")
+        return True
+
+
+    def is_empty(self, key: str = 'corepop') -> bool:
         if not self[key]:
             return True
 
