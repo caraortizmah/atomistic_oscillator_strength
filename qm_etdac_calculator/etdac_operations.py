@@ -98,15 +98,17 @@ class Operations:
         """
         return df.loc[:, (df != 0).any(axis=0)] #removing zero columns
 
-#calculate_etdac
-    def heatmap_ETDAC(core_MO, virt_MO, fosce_mo_trans):
+    def calculate_etdac(self) -> Dict:
         """
     Runs the ts_psb_acore_bvirt() function to calculate the
      electron transition density atomic contribution matrix 
      by performing some matrix transformations in the 
      core_MO and virt_MO pd.frames that are stored as
      values in dictionary.
-    Args:
+     This function is the same as heatmap_ETDAC(...) in the
+     jupyter notebook examples and documentation
+    Arguments come directly from the object (self) and essentially
+    are thre type of data:
     core_MO (dict): core MO and atom population matrices 
      obtained by load_dict_data() and remove_noncontrb()
     virt_MO (dict): virtual MO and atom population matrices 
@@ -119,6 +121,10 @@ class Operations:
     heatmap_raw (dict): The electron transition density 
      atomic contribution (ETDAC) matrix in pd.frame format.
         """
+        #calling initialize data
+        core_MO = trim_data['corepop']
+        virt_MO = trim_data['virtualpop']
+        fosce_mo_trans = self['etrans']
         # WSM case
         # Exploiting the fact that all data share same order of the keys (hashes)
         heatmap_raw = {}
