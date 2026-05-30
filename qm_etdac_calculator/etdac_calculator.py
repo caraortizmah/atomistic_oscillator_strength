@@ -13,7 +13,7 @@ import pandas as pd
 import csv as csv
 import h5py
 
-from .gate_controler import Loader
+from .gate_controler import Controler
 
 class Scheme:
     """
@@ -52,7 +52,7 @@ class Scheme:
         self.etdac: Dict = {}
 
         # Initialize classes
-        open_data = Loader()
+        open_data = Controler()
 
     def get_info(self, log_file: str) -> {}:
         if open_data.is_datawell(log_file):

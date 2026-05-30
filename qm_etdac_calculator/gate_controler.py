@@ -46,7 +46,7 @@ $$
 # >  ... <br>
 # >  f61,(path)../newFY_1-26/resA_MOcore_AB_11.0A_1-26.csv <br>
 
-class Loader:
+class Controler:
     def __init__(self):
         return 0
     
