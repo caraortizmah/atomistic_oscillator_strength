@@ -10,12 +10,6 @@ for further information
 import numpy as np
 import pandas as pd
 import csv as csv
-
-# %%
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# %%
 import h5py
 
 
@@ -92,7 +86,7 @@ class Operations:
             dict_data.update({key: nonzero_mo_matrix(value)})
         return dict_data
     
-    def nonzero_mo_matrix(df):
+    def nonzero_mo_matrix(df) -> DataFrame:
         """
         it returns MO matrix (df) having just non-zero MO population.
         """
@@ -139,7 +133,7 @@ class Operations:
                     })
         return get_format(heatmap_raw)
 
-    def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False):
+    def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False) -> DataFrame:
         """
     Do a matrix multiplication between the core-to-virt transition 
     probabilities matrix and the core MO matrix, then the resulting matrix
@@ -177,7 +171,7 @@ class Operations:
         else:
             return dff2
     
-    def get_format(heatmap_raw):
+    def get_format(heatmap_raw) -> Dict:
         """
         Adjusts format to each raw pandas ETDAC result in the dictionary
         """
