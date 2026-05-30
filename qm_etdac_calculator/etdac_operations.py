@@ -51,23 +51,6 @@ class Operations:
         trim_data['corepop'] = remove_noncontrb(self['corepop'])
         trim_data['virtualpop'] = remove_noncontrb(self['virtualpop'])    
     
-    def remove_noncontrb(dict_data_raw) -> Dict:
-        """
-        Drops off the non-contributing elements to avoid
-        zero or nan spread on the following linear algebra 
-        operations.
-        This function depends on the nonzero_mo_matrix()
-        to work.
-        Args:
-        dict_data_raw (dict): the pd.frames inside can have zeroes
-        or nan values.
-        Output (dict): dict_data only with nonzero elements.
-        """
-        dict_data = {}
-        for key, value in dict_data_raw.items():
-            dict_data.update({key: nonzero_mo_matrix(value)})
-        return dict_data
-    
     def is_trimmed(self, key: str = 'corepop') -> bool:
         if not self[key] == trim_data[key]:
             return True
@@ -88,10 +71,26 @@ class Operations:
             print(f"There were not found non-contributing {typemo} MOs\n")
         return True
 
-
     def is_empty(self, key: str = 'corepop') -> bool:
         if not self[key]:
             return True
+            
+    def remove_noncontrb(dict_data_raw) -> Dict:
+        """
+        Drops off the non-contributing elements to avoid
+        zero or nan spread on the following linear algebra 
+        operations.
+        This function depends on the nonzero_mo_matrix()
+        to work.
+        Args:
+        dict_data_raw (dict): the pd.frames inside can have zeroes
+        or nan values.
+        Output (dict): dict_data only with nonzero elements.
+        """
+        dict_data = {}
+        for key, value in dict_data_raw.items():
+            dict_data.update({key: nonzero_mo_matrix(value)})
+        return dict_data
     
     def nonzero_mo_matrix(df):
         """
