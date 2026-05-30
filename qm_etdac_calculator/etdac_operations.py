@@ -17,9 +17,33 @@ import seaborn as sns
 
 # %%
 import h5py
-# #### Functions for the algebra operations
 
-# %%
+
+class Operations:
+    """
+    Takes the dictionary data from Scheme class and run the eq. 5 of the paper:
+    "X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids"
+    
+    ETDAC results are return to Scheme.
+    
+    This class operates transformations over data. 
+    
+    Mandatory parameters: core matrix, virtual matrix, electron transition matrix (3)
+    Optional parameters: None
+    """
+
+    def __init__(self):
+        """
+        Class expected to be used in object.data of Scheme class
+        object.data is a dictionary if three dictionaries that contains the raw data 
+        of core MOs population, virtual MOs population and electron transition matrix.
+        How to acces to data:
+        self.['corepop']: Dict
+        self.['virtualpop']: Dict
+        self.['etrans']: Dict
+        """
+
+
 def selecting_atm_matrix(df, atoms_list):
     """
     it returns MO matrix (df) having just the atoms in atoms_list.
