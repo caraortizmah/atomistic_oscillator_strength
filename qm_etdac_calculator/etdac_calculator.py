@@ -14,6 +14,7 @@ import csv as csv
 import h5py
 
 from .gate_controler import Controler
+from .etdac_operations import Operations
 
 class Scheme:
     """
