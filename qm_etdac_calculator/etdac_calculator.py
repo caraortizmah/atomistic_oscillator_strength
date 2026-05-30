@@ -78,7 +78,7 @@ class Scheme:
         self.data = Operations()
         self.data.report_trimmed('corepop')
         self.data.report_trimmed('virtualpop')
-        
+
         # Perform ETDAC calculation
         self.etdac = self.data.calculate_etdac()
         if self.is_etdac():
@@ -91,8 +91,11 @@ class Scheme:
     def is_etdac(self) -> Bool:
         return True if self.etdac else False
 
-    def save():
-        return True
+    def save(self, etdac_name: str='data_etdac_matrix.h5') -> Bool:
+        """
+        Saves ETDAC calculation as dictionary in H5 format
+        """
+        return open_data.save_ETDAC_matrix(self.etdac, etdac_name)
 
 
 #resa_mocore_raw = load_dict_data('resA_MOcore_list.log', 'num-1')
