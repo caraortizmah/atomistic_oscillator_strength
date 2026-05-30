@@ -43,6 +43,50 @@ class Operations:
         self.['etrans']: Dict
         """
 
+        trim_data = {
+        'corepop': Dict,
+        'virtualpop': Dict
+        }
+
+        trim_data['corepop'] = remove_noncontrb(self['corepop'])
+        trim_data['virtualpop'] = remove_noncontrb(self['virtualpop'])
+
+                # move this inside operations
+        if not etdac_scheme.data.is_trimmed():
+            return 0
+        #    print(f"There were not found non-contributing MOs\n")
+        #else:
+        #    print(f"There were found non-contributing MOs\n")
+        #    print(f"Non-contributing MOs are not considered in the ETDAC calculation\n") 
+    
+    
+    def remove_noncontrb(dict_data_raw) -> Dict:
+        """
+        Drops off the non-contributing elements to avoid
+        zero or nan spread on the following linear algebra 
+        operations.
+        This function depends on the nonzero_mo_matrix()
+        to work.
+        Args:
+        dict_data_raw (dict): the pd.frames inside can have zeroes
+        or nan values.
+        Output (dict): dict_data only with nonzero elements.
+        """
+        dict_data = {}
+        for key, value in dict_data_raw.items():
+            dict_data.update({key: nonzero_mo_matrix(value)})
+        return dict_data
+    
+    def is_trimmed(self, key: str = 'core') -> bool:
+        if not self[key] == trim_data[key]:
+            return True
+    
+    def is_empty(self, key: str = 'core') -> bool:
+        if not self[key]:
+            return True
+
+
+
 
 def selecting_atm_matrix(df, atoms_list):
     """
