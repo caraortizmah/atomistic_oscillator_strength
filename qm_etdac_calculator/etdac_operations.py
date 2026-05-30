@@ -92,6 +92,12 @@ class Operations:
     def is_empty(self, key: str = 'corepop') -> bool:
         if not self[key]:
             return True
+    
+    def nonzero_mo_matrix(df):
+        """
+        it returns MO matrix (df) having just non-zero MO population.
+        """
+        return df.loc[:, (df != 0).any(axis=0)] #removing zero columns
 
 
 
