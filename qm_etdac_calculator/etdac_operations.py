@@ -51,13 +51,17 @@ class Operations:
         trim_data['corepop'] = remove_noncontrb(self['corepop'])
         trim_data['virtualpop'] = remove_noncontrb(self['virtualpop'])
 
-                # move this inside operations
-        if not etdac_scheme.data.is_trimmed():
-            return 0
-        #    print(f"There were not found non-contributing MOs\n")
-        #else:
-        #    print(f"There were found non-contributing MOs\n")
-        #    print(f"Non-contributing MOs are not considered in the ETDAC calculation\n") 
+        if not self.is_trimmed('corepop'):
+            print(f"There were not found non-contributing core MOs\n")
+        else:
+            print(f"There were found non-contributing core MOs\n")
+            print(f"Non-contributing MOs are not considered in the ETDAC calculation\n")
+
+        if not self.is_trimmed('virtualpop'):
+            print(f"There were not found non-contributing virtual MOs\n")
+        else:
+            print(f"There were found non-contributing virtual MOs\n")
+            print(f"Non-contributing MOs are not considered in the ETDAC calculation\n")
     
     
     def remove_noncontrb(dict_data_raw) -> Dict:
