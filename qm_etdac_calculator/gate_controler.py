@@ -11,12 +11,6 @@
 import numpy as np
 import pandas as pd
 import csv as csv
-
-# %%
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# %%
 import h5py
 
 # %%
@@ -120,33 +114,33 @@ class Loader:
                     index_col=index_col_condition) # value
                 })
         return dict_raw
-
-
-def save_ETDAC_matrix(data_dict, data_set_name="data_etdac_matrix.h5"):
-    """
-    Get the node/edge features for each molecule and save
-    all the results in H5PY format.
-    Args:
-    data_dict (dict) contains a hash (key) and 
-     the ETDAC matrix (value) of each molecule.
-    data_set_name (str, optional) is the name of the H5PY file to be
-     created. By default that file is called "data_etdac_matrix.h5".
-    """
     
-    with h5py.File(data_set_name, 'w') as f:
-
-        # Get node/edge features for the list of molecules
-        for hash in data_dict.keys():
-#df.to_hdf('data.h5', key='df', mode='w', format='table')
-            qm_group = f.create_group(f"sample_{hash}")
-            qm_group.create_dataset("ETDAC_matrix", 
+    def save_ETDAC_matrix(data_dict, data_set_name="data_etdac_matrix.h5"):
+        """
+        Get the node/edge features for each molecule and save
+        all the results in H5PY format.
+        Args:
+        data_dict (dict) contains a hash (key) and 
+        the ETDAC matrix (value) of each molecule.
+        data_set_name (str, optional) is the name of the H5PY file to be
+        created. By default that file is called "data_etdac_matrix.h5".
+        """
+        
+        try:
+            with h5py.File(data_set_name, 'w') as f:
+                # Get node/edge features for the list of molecules
+                for hash in data_dict.keys():
+                #df.to_hdf('data.h5', key='df', mode='w', format='table')
+                    qm_group = f.create_group(f"sample_{hash}")
+                    qm_group.create_dataset("ETDAC_matrix", 
                                     data=data_dict[hash].to_records(index=True),  # Preserves index+columns
                                     compression="gzip")
-            
-            qm_group.attrs["hash"] = hash
-            qm_group.attrs["column_name"] = data_dict[hash].columns.name # Save column name
-            qm_group.attrs["index_name"] = data_dict[hash].index.name  # Save row name
-
-# %% [markdown]
-# #### Functions for the algebra operations
-
+                
+                    qm_group.attrs["hash"] = hash
+                    qm_group.attrs["column_name"] = data_dict[hash].columns.name # Save column name
+                    qm_group.attrs["index_name"] = data_dict[hash].index.name  # Save row name
+            print(f"Calculated ETDAC was saved in H5 format\n")
+            return True
+        except Exception as e:
+            self.errors.append(f"Failed to save calculated ETDAC in a H5 file: {str(e)}\n")    
+            return False 
