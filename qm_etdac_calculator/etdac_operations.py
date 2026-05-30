@@ -140,22 +140,7 @@ def cropping_matrix(df, df1, df2):
 # the first two elements in df2.axes[1] and df1.axes[1] are "sym" and "lvl", that's why I used df.axes[1][2:]
 
 # %%
-def remove_noncontrb(dict_data_raw):
-    """
-    Drops off the non-contributing elements to avoid
-    zero or nan spread on the following linear algebra 
-    operations.
-    This function depends on the nonzero_mo_matrix()
-     to work.
-    Args:
-    dict_data_raw (dict): the pd.frames inside can have zeroes
-     or nan values.
-    Output (dict): dict_data only with nonzero elements.
-    """
-    dict_data = {}
-    for key, value in dict_data_raw.items():
-        dict_data.update({key: nonzero_mo_matrix(value)})
-    return dict_data
+
 
 # %% [markdown]
 # #### Main functions: ETDAC matrix calculation
