@@ -176,6 +176,22 @@ class Operations:
             return dff, dff2
         else:
             return dff2
+    
+    def get_format(heatmap_raw):
+        """
+        Adjusts format to each raw pandas ETDAC result in the dictionary
+        """
+        for key in heatmap_raw.keys():
+            heatmap_raw[key].index.names = ['core-atom']
+            heatmap_raw[key].columns.names = ['virtual-atom']
+        
+        heatmap = {}
+        for key in heatmap_raw.keys():
+            heatmap.update({
+                key:
+                heatmap_raw[key].apply(pd.to_numeric).sort_index(ascending=True)
+                })
+        return heatmap
 
 def selecting_atm_matrix(df, atoms_list):
     """
@@ -223,22 +239,6 @@ def cropping_matrix(df, df1, df2):
         return dff.loc[[int(i) for i in tmp_mo2]] #returning specific rows
 # the first two elements in df2.axes[1] and df1.axes[1] are "sym" and "lvl", that's why I used df.axes[1][2:]
 
-# %%
-
-
-# %% [markdown]
-# #### Main functions: ETDAC matrix calculation
-
-# %% [markdown]
-# ##### Building heatmaps of $\tilde{\gamma}^{[l,m]}_{AA^{\prime}}$
-
-# %%
-
-
-# %%
-
-
-# %%
 def crop_heatmap_byatm(etdac_m, row_cond, col_cond):
     """
     Crop the electron transition density atomic 
