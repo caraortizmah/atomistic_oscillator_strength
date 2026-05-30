@@ -137,7 +137,7 @@ class Operations:
                     virt_MO[key].T[2:].T,
                     fosce_mo_trans[key])
                     })
-        return heatmap_raw
+        return get_format(heatmap_raw)
 
     def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False):
         """
