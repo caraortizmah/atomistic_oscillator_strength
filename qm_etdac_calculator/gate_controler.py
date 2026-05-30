@@ -52,16 +52,41 @@ $$
 # >  ... <br>
 # >  f61,(path)../newFY_1-26/resA_MOcore_AB_11.0A_1-26.csv <br>
 
-# %% [markdown]
-# ______________________________________
-
-# %% [markdown]
-# #### Functions for processing data
-# ______________________________________________
-
-# %%
-def load_dict_data(filename, index_col_condition='num-1'):
-    """
+class Loader:
+    def __init__(self):
+        return 0
+    
+    def is_datawell(self, log_file: str) -> bool:
+        try:
+            with open(log_file, 'r') as file:
+                for line in file:
+                    line = line.strip()
+                    if (len(line.split(',')) !=2 ):
+                        return False
+                    check_tmp = line.split(',')[0]
+                    #check patterns in hash 
+                    if not bool(check_tmp and check_tmp.strip()):
+                        return False #if blank spaces or empty
+                    if (' ' in check_tmp.strip()):
+                        return False # if spaces between words
+                    if not check_tmp.replace(' ', '').isalnum():
+                        return False # if not alphanumeric
+                    check_tmp = line.split(',')[1]
+                    if not os.path.isfile(check_tmp):
+                        return False
+                    try:
+                        with open(check_tmp, 'r') as f:
+                            f.read()
+                    except Exception as e:
+                        return False
+        except Exception as e:
+            self.errors.append(f"Failed to open {log_file} file: {str(e)}\n")    
+            return False
+        #condition
+        return True
+        
+    def get_dict_data(self, filename: str =log_file, index_col_condition='num-1') -> {}:
+        """
     Reads from a two-column file the hash and the file and
      stores the information of the csv file into a dictionary.
     Format file to be read:
