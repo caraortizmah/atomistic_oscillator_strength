@@ -121,14 +121,7 @@ def main():
             print(f"Run a diagnosis (only auto mode) as: qm-etdac check json_file\n")
             return 1
         etdac_scheme.data = Operations()
-        # initiatilze etdac_scheme.data.trim_data() in operations
-        
-        # move this inside operations
-        #if not etdac_scheme.data.is_trimmed():
-        #    print(f"There were not found non-contributing MOs\n")
-        #else:
-        #    print(f"There were found non-contributing MOs\n")
-        #    print(f"Non-contributing MOs are not considered in the ETDAC calculation\n")   
+        # initiatilze etdac_scheme.data.trim_data() in operations  
 
         #etdac_scheme.data.trim.format()
 
