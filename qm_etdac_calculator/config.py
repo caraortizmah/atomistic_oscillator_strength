@@ -54,7 +54,7 @@ class ConfigMan:
         
         return True
 
-    def checker_log_file(self, path) -> bool:
+    def checker_log_file(self, path: str) -> bool:
         """
         Check if a mandatory log file exists
         
