@@ -98,6 +98,40 @@ class Operations:
         """
         return df.loc[:, (df != 0).any(axis=0)] #removing zero columns
 
+#calculate_etdac
+    def heatmap_ETDAC(core_MO, virt_MO, fosce_mo_trans):
+        """
+    Runs the ts_psb_acore_bvirt() function to calculate the
+     electron transition density atomic contribution matrix 
+     by performing some matrix transformations in the 
+     core_MO and virt_MO pd.frames that are stored as
+     values in dictionary.
+    Args:
+    core_MO (dict): core MO and atom population matrices 
+     obtained by load_dict_data() and remove_noncontrb()
+    virt_MO (dict): virtual MO and atom population matrices 
+     obtained by load_dict_data()
+    fosce_mo_trans (dict): electronic transition
+     (oscillator strength) MO matrices obtained by the pipeline
+     (github.com/caraortizmah/x-ray_scripting_out) and 
+     formated by load_dict_data()
+    Output:
+    heatmap_raw (dict): The electron transition density 
+     atomic contribution (ETDAC) matrix in pd.frame format.
+        """
+        # WSM case
+        # Exploiting the fact that all data share same order of the keys (hashes)
+        heatmap_raw = {}
+        for key in virt_MO.keys(): 
+            # it can be any of the created dictionaries, they have same keys and in the same order
+            heatmap_raw.update({
+                key:
+                ts_psb_acore_bvirt(
+                    core_MO[key].T[2:].T,
+                    virt_MO[key].T[2:].T,
+                    fosce_mo_trans[key])
+                    })
+        return heatmap_raw
 
 
 
@@ -197,39 +231,7 @@ def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False):
         return dff2
 
 # %%
-def heatmap_ETDAC(core_MO, virt_MO, fosce_mo_trans):
-    """
-    Runs the ts_psb_acore_bvirt() function to calculate the
-     electron transition density atomic contribution matrix 
-     by performing some matrix transformations in the 
-     core_MO and virt_MO pd.frames that are stored as
-     values in dictionary.
-    Args:
-    core_MO (dict): core MO and atom population matrices 
-     obtained by load_dict_data() and remove_noncontrb()
-    virt_MO (dict): virtual MO and atom population matrices 
-     obtained by load_dict_data()
-    fosce_mo_trans (dict): electronic transition
-     (oscillator strength) MO matrices obtained by the pipeline
-     (github.com/caraortizmah/x-ray_scripting_out) and 
-     formated by load_dict_data()
-    Output:
-    heatmap_raw (dict): The electron transition density 
-     atomic contribution (ETDAC) matrix in pd.frame format.
-    """
-    # WSM case
-    # Exploiting the fact that all data share same order of the keys (hashes)
-    heatmap_raw = {}
-    for key in virt_MO.keys(): 
-        # it can be any of the created dictionaries, they have same keys and in the same order
-        heatmap_raw.update({
-            key:
-            ts_psb_acore_bvirt(
-                core_MO[key].T[2:].T,
-                virt_MO[key].T[2:].T,
-                fosce_mo_trans[key])
-        })
-    return heatmap_raw
+
 
 # %%
 def crop_heatmap_byatm(etdac_m, row_cond, col_cond):
