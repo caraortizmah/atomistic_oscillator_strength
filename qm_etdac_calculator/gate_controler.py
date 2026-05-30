@@ -104,24 +104,24 @@ class Loader:
       Default as 'num-1'
     Output (dict): keys are the hashes and values of the dictionary
      are the pandas frame for each csv file.
-    """
-    # Initialize a dictionary
-    dict_raw = {}
-    # Open the list file
-    with open(filename, 'r') as file:
-        # Read each line in the file
-        for line in file:
-            line = line.strip()
+        """
+        # Initialize a dictionary
+        dict_raw = {}
+        # Open the list file
+        with open(filename, 'r') as file:
+            # Read each line in the file
+            for line in file:
+                line = line.strip()
     # {(key) hash = line.split(',')[0] : (value) file_n = line.split(',')[1]}
-            dict_raw.update({
-                line.split(',')[0]: # key
-                pd.read_csv(line.split(',')[1],
-                            delimiter=',',
-                            index_col=index_col_condition) # value
-            })
-    return dict_raw
+                dict_raw.update({
+                    line.split(',')[0]: # key
+                    pd.read_csv(line.split(',')[1],
+                    delimiter=',',
+                    index_col=index_col_condition) # value
+                })
+        return dict_raw
 
-# %%
+
 def save_ETDAC_matrix(data_dict, data_set_name="data_etdac_matrix.h5"):
     """
     Get the node/edge features for each molecule and save
