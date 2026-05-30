@@ -37,10 +37,10 @@ class Operations:
         Class expected to be used in object.data of Scheme class
         object.data is a dictionary if three dictionaries that contains the raw data 
         of core MOs population, virtual MOs population and electron transition matrix.
-        How to acces to data:
-        self.['corepop']: Dict
-        self.['virtualpop']: Dict
-        self.['etrans']: Dict
+        How to acces to object.data (self):
+        self['corepop']: Dict
+        self['virtualpop']: Dict
+        self['etrans']: Dict
         """
 
         trim_data = {
