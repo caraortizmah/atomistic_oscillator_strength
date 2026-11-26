@@ -66,8 +66,12 @@ version = {attr = "qm_etdac_calculator.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
-addopts = "-v"
+addopts = "-v --strict-markers"
+markers = [
+    "golden: compares against the committed Phe-Tyr reference data (52 samples, 3.5-11.0 A)",
+]
 
 [tool.coverage.run]
 source = ["qm_etdac_calculator"]
