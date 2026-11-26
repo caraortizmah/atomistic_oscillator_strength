@@ -11,6 +11,9 @@ project uses [Semantic Versioning](https://semver.org/).
 - `docs/project-state.md`: status, decisions and plan.
 - `docs/adr/`: architecture decision records 0001–0004.
 - `requirements-dev.txt`: hashed lock file generated with pip-tools.
+- `scripts/dev-setup.sh`: one-time developer setup (`.venv` + locked install).
+- `scripts/clean.sh`: removes generated development artefacts (`--dry-run`, `--all`).
+- `README.md`: license notice (GPL-3.0-or-later).
 
 ### Changed
 
