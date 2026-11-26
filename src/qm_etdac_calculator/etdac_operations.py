@@ -20,73 +20,101 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-import csv as csv
-import h5py
+
+TEXT_COLUMNS = ["sym", "lvl"]  # non-numeric columns of the population files
 
 
+def nonzero_mo_matrix(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Return the MO matrix (df) without its all-zero MO columns.
+
+    Note (ADR 0002): a column that contains NaN is NOT removed (NaN != 0 is True).
+    This is a safeguard against 0/0 in later normalisations, not a guard against NaN.
+    """
+    return df.loc[:, (df != 0).any(axis=0)]
+
+
+def remove_noncontrb(dict_data_raw: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """
+    Drop the non-contributing (all-zero) MO columns of every sample, to avoid zero or
+    NaN spreading through later operations. Uses nonzero_mo_matrix().
+
+    Args:
+        dict_data_raw: {hash: MO population matrix}; the matrices may contain zero columns.
+    Returns:
+        {hash: matrix without its all-zero MO columns}. The inputs are not modified.
+    """
+    return {key: nonzero_mo_matrix(value) for key, value in dict_data_raw.items()}
+
+
+def etdac_matrix(
+    core_pop: pd.DataFrame,
+    virt_pop: pd.DataFrame,
+    osc_strength: pd.DataFrame,
+    return_transition: bool = False,
+) -> pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    ETDAC matrix of one sample (formerly ts_psb_acore_bvirt in the notebook).
+
+    Args:
+        core_pop: core-MO populations (%), rows = core atoms, columns = core MO labels.
+            Numeric columns only (no sym / lvl).
+        virt_pop: virtual-MO populations (%), rows = virtual atoms, columns = virtual MO
+            labels. Numeric columns only (no sym / lvl).
+        osc_strength: oscillator strengths, rows = virtual MO labels, columns = core MO
+            labels (the "virt\\core" files).
+        return_transition: also return the intermediate matrix of step 1 (formerly the
+            notebook option atm_to_virtmo).
+    Returns:
+        The ETDAC matrix, rows = core atoms, columns = virtual atoms. With
+        return_transition=True: (transition, etdac), where transition has rows = core
+        atoms and columns = virtual MO labels.
+
+    Products run only over the MO labels both matrices share. Labels present in only one
+    matrix contribute nothing, explicitly (no try/except). The inputs are not modified.
+    """
+    osc = osc_strength.copy()
+    osc.index = osc.index.astype(str)  # virtual MO labels: integers in the index, strings in headers
+
+    # step 1: core atoms x virtual MOs, summed over the shared core MOs, then / 100
+    shared_core_mos = [mo for mo in osc.columns if mo in core_pop.columns]
+    transition = pd.DataFrame(0.0, index=core_pop.index, columns=osc.index)
+    for mo in shared_core_mos:
+        transition += np.outer(core_pop[mo].to_numpy(dtype=float), osc[mo].to_numpy(dtype=float))
+    transition = transition / 100
+
+    # step 2: core atoms x virtual atoms, summed over the shared virtual MOs (no / 100)
+    shared_virt_mos = [mo for mo in transition.columns if mo in virt_pop.columns]
+    etdac = pd.DataFrame(0.0, index=core_pop.index, columns=virt_pop.index)
+    for mo in shared_virt_mos:
+        etdac += np.outer(transition[mo].to_numpy(dtype=float), virt_pop[mo].to_numpy(dtype=float))
+
+    if return_transition:
+        return transition, etdac
+    return etdac
+
+
+@dataclass(frozen=True)
 class Operations:
     """
-    Takes the dictionary data from Scheme class and run the eq. 5 of the paper:
-    "X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids"
-    
-    ETDAC results are return to Scheme.
-    
-    This class operates transformations over data. 
-    
-    Mandatory parameters: core matrix, virtual matrix, electron transition matrix (3)
-    Optional parameters: None
+    Calculation options (state) and the batch calculation over all samples.
+
+    Attributes:
+        trim_core: remove all-zero core MO columns before the calculation (default True).
+            A technical safeguard with no effect on the result (ADR 0002).
     """
 
-    def __init__(self):
+    trim_core: bool = True
+
+    def etdac_batch(
+        self,
+        core: dict[str, pd.DataFrame],
+        virt: dict[str, pd.DataFrame],
+        etrans: dict[str, pd.DataFrame],
+    ) -> dict[str, pd.DataFrame]:
         """
-        Class expected to be used in object.data of Scheme class
-        object.data is a dictionary if three dictionaries that contains the raw data 
-        of core MOs population, virtual MOs population and electron transition matrix.
-        How to acces to object.data (self):
-        self['corepop']: Dict
-        self['virtualpop']: Dict
-        self['etrans']: Dict
-        """
+        ETDAC matrices of all samples (formerly heatmap_ETDAC plus formatting).
 
-        trim_data = {
-        'corepop': Dict,
-        'virtualpop': Dict
-        }
-
-        trim_data['corepop'] = remove_noncontrb(self['corepop'])
-        trim_data['virtualpop'] = remove_noncontrb(self['virtualpop'])    
-    
-    def is_trimmed(self, key: str = 'corepop') -> bool:
-        if not self[key] == trim_data[key]:
-            return True
-        return False
-    
-    def report_trimmed(self, key: str = 'corepop') -> bool:
-        
-        typemo = 'core' if key == 'corepop' else 'virtual' if key == 'virtualpop' else 'error'
-
-        if typemo == 'error':
-            printf(f"Wrong key assignment: use only 'corepop' or 'virtualpop'\n")
-            return False
-
-        if self.is_trimmed(key):
-            print(f"There were found non-contributing {typemo} MOs\n")
-            print(f"Non-contributing {typemo} MOs are not considered in the ETDAC calculation\n")
-        else:
-            print(f"There were not found non-contributing {typemo} MOs\n")
-        return True
-
-    def is_empty(self, key: str = 'corepop') -> bool:
-        if not self[key]:
-            return True
-            
-    def remove_noncontrb(dict_data_raw) -> Dict:
-        """
-        Drops off the non-contributing elements to avoid
-        zero or nan spread on the following linear algebra 
-        operations.
-        This function depends on the nonzero_mo_matrix()
-        to work.
         Args:
         dict_data_raw (dict): the pd.frames inside can have zeroes
         or nan values.

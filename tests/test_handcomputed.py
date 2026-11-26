@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from conftest import OSC_INDEX, POP_INDEX, frame_from_csv
 
-from qm_etdac_calculator.etdac_operations import Operations, nonzero_mo_matrix, remove_noncontrb
+from qm_etdac_calculator.etdac_operations import Operations, etdac_matrix, nonzero_mo_matrix, remove_noncontrb
 
 
 def _batch(core: str, virt: str, osc: str, **options: bool) -> pd.DataFrame:
