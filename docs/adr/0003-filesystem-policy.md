@@ -1,6 +1,6 @@
 # ADR 0003: Filesystem policy: least privilege, never overwrite
 
-- Status: accepted
+- Status: accepted; default data root amended by ADR 0004
 - Date: 2026-11-26
 
 ## Context
