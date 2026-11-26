@@ -41,8 +41,9 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | D9  | `etdac_editprinter` becomes tested functions in 1.2.0. Atom ranges come from a config file, not code. | here |
 | D10 | I implement the vectorised `ts_psb_acore_bvirt`, keeping the loop version as an explanatory comment. | here |
 | D11 | Private notes live in `.notes/`, excluded via `.git/info/exclude`. Public notes: this file and `docs/adr/`. | here |
-| D12 | License declared as SPDX `GPL-3.0-only`, for now, (matches the former GPLv3 classifier). | here |
+| D12 | License: GPL v3 or any later version (SPDX `GPL-3.0-or-later`), stated in `pyproject.toml` and `README.md`. | here |
 | D13 | Single-source version: `__version__` in `__init__.py`, read statically by setuptools. | here |
+| D14 | Developer setup via `scripts/dev-setup.sh` (create `.venv`, install from the lock file - requirements-dev.txt). The lock file is regenerated only on purpose, when dependencies change. `scripts/clean.sh` removes generated artefacts (`--all` also `.venv`). | here |
 
 ## Plan
 
