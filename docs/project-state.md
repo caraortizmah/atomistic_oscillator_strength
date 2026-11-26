@@ -30,7 +30,7 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | ID  | Decision | Record |
 |-----|----------|--------|
 | D1  | Lock dependencies with pip-tools (hashed). Revisit uv for Docker/n8n. | ADR 0001 |
-| D2  | The notebook is the numerical source of truth. Virtual matrix untrimmed; ÷100 on the first product only. | ADR 0002 |
+| D2  | The notebook is the numerical source of truth. Core matrix trimmed (technical safeguard against 0/0 = NaN, no effect on results); virtual matrix untrimmed; ÷100 on the first product only. | ADR 0002 |
 | D3  | Filesystem policy: strict data root, outputs only in `etdac_outputs/`, nothing overwritten. | ADR 0003 |
 | D3a | Default data root temporarily widened to the parent of the logs folder (rule stays strict) until `newFY_1-26` is renamed. | ADR 0004 |
 | D4  | CLI keeps the documented names: `qm-etdac noauto`, `qm-etdac auto`, `qm-etdac check`, `qm-etdac --help`, `qm-etdac-test` (built-in self-check). | here |
