@@ -9,7 +9,7 @@ project uses [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `docs/project-state.md`: status, decisions and plan.
-- `docs/adr/`: architecture decision records 0001–0003.
+- `docs/adr/`: architecture decision records 0001–0004.
 
 ## [1.1.0]
 
