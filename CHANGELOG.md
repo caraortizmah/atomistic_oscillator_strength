@@ -9,14 +9,24 @@ project uses [Semantic Versioning](https://semver.org/).
 ### Added
 
 - `docs/project-state.md`: status, decisions and plan.
-- `docs/adr/`: architecture decision records 0001–0004.
+- `docs/adr/`: architecture decision records 0001–0006.
 - `requirements-dev.txt`: hashed lock file generated with pip-tools.
 - `scripts/dev-setup.sh`: one-time developer setup (`.venv` + locked install).
 - `scripts/clean.sh`: removes generated development artefacts (`--dry-run`, `--all`).
 - `README.md`: license notice (GPL-3.0-or-later).
+- Tests in three layers: hand-computed (`tests/test_handcomputed.py`), notebook
+  equivalence (`tests/test_notebook_equivalence.py`) and golden (`tests/test_golden.py`);
+  frozen notebook reference `tests/notebook_reference.py`.
+- `tests/data/phe_tyr/`: public Phe–Tyr data set (52 geometries, 3.5–11.0 Å) with its
+  reference ETDAC output, committed for the golden test.
+- ADR 0005 (input validation: allowlist, fail closed; context-aware output encoding;
+  CSV/formula injection) and ADR 0006 (provenance metadata in output files).
+- `docs/development.md`: "Running tests" section.
 
 ### Changed
 
+- `pyproject.toml`: pytest `golden` marker, `--strict-markers`, `tests` on the import path.
+- `.gitignore`: re-includes `tests/data/phe_tyr/` only.
 - Package moved to `src/qm_etdac_calculator/` (src layout); `pyproject.toml` sets `package-dir`.
 - `pyproject.toml`: runtime dependencies declared (numpy, pandas, h5py); Python >= 3.11;
   license as SPDX expression `GPL-3.0-or-later`; version read from `__version__` (single source);

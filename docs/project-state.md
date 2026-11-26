@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-26 - Checkpoint 3 (src layout)_
+_Last updated: 2026-11-26 - Checkpoint 4 (tests, red)_
 
 ## How to resume
 
@@ -12,7 +12,7 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0–2 are committed; step 3 (src layout) is in review.
+- The packaging plan is agreed. Steps 0–3 are committed; step 4 (tests, red) is in review.
 - Code is unchanged since `0d75b23`. The package installs, but `import qm_etdac_calculator`
   fails: notebook leftovers run at import time and there are 59 undefined names.
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces
@@ -44,6 +44,10 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | D12 | License: GPL v3 or any later version (SPDX `GPL-3.0-or-later`), stated in `pyproject.toml` and `README.md`. | here |
 | D13 | Single-source version: `__version__` in `__init__.py`, read statically by setuptools. | here |
 | D14 | Developer setup via `scripts/dev-setup.sh` (create `.venv`, install from the lock file - requirements-dev.txt). The lock file is regenerated only on purpose, when dependencies change. `scripts/clean.sh` removes generated artefacts (`--all` also `.venv`). | here |
+| D15 | Classes where there is state to protect, functions where there is none: `Operations` (calculation options, e.g. `trim_core=True`), `Controler` (data root, output folder), `Scheme` (orchestration), `ConfigMan` (run settings). Single-sample kernel `etdac_matrix` (was `ts_psb_acore_bvirt`); all samples `Operations.etdac_batch` (was `heatmap_ETDAC` + formatting), returning a dict `{hash: matrix}`. | here |
+| D16 | Golden data set: Phe–Tyr, 52 geometries 3.5–11.0 Å (`f10`–`f61`, the paper's range), committed in `tests/data/phe_tyr/` with its reference output (cut from the notebook's `.h5`). Hashes keep their original IDs; `f<number>` is only a convention. | here |
+| D17 | Input validation: allowlist, fail closed; warnings for populations > 100 % and for MO sums > 100 % (two levels: "at the edge" up to 102.5 %, "beyond rounding tolerance" above). Size limits fixed for now. Required tests (negative + boundary pairs) listed in the ADR. Context-aware output encoding and CSV/formula injection documented as security examples. | ADR 0005 |
+| D18 | Output `.h5` files carry provenance: program, version, UTC time, SHA-256 of every input. | ADR 0006 |
 
 ## Plan
 
@@ -51,12 +55,12 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 - [x] 0b. ADR 0004: temporary parent-folder data root
 - [x] 1. Hygiene: `.gitignore` venv patterns; delete `setup.py` and `requirements.txt`
 - [x] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough; fix the "This installs" list in `docs/installation.md`
-- [ ] 3. `git mv` package into `src/` (pure move) *(in review)*
-- [ ] 4. Tests (red): synthetic, notebook-equivalence, golden (skipped without data)
-- [ ] 5. Core: logging, I/O with path and output policy, operations matching the notebook, `Scheme` orchestration (green)
+- [x] 3. `git mv` package into `src/` (pure move)
+- [ ] 4. Tests (red): hand-computed, notebook-equivalence, golden (Phe–Tyr data committed in `tests/data/phe_tyr/`) *(in review)*
+- [ ] 5. Core: logging; `Operations` / `etdac_matrix` / `etdac_batch` (tests green); I/O with path and output policy; input validation (ADR 0005); provenance (ADR 0006); `Scheme` orchestration; end-to-end test through the package loader
 - [ ] 6. CLI as documented, inside the package
 - [ ] 6b. `etdac_editprinter` as functions; atom-range config
-- [ ] 7. Vectorised `ts_psb_acore_bvirt` (spec + failing test provided)
+- [ ] 7. Vectorised `etdac_matrix` (was `ts_psb_acore_bvirt`; spec + failing test provided)
 - [ ] 8. ruff (incl. `S` security rules), then mypy, then pre-commit
 - [ ] 9. GitHub Actions CI: least-privilege token, SHA-pinned actions, hashed install, build + `twine check`; recompile the lock and fail on diff; `pip-audit` (proposed)
 - [ ] 10. README, docs cleanup (incl. resA/resB naming note, uninstall note, empty "Run Pipeline" section in `docs/installation.md`), release 1.2.0
