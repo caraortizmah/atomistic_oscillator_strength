@@ -18,7 +18,7 @@ project uses [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - `pyproject.toml`: runtime dependencies declared (numpy, pandas, h5py); Python >= 3.11;
-  license as SPDX expression `GPL-3.0-only`; version read from `__version__` (single source);
+  license as SPDX expression `GPL-3.0-or-later`; version read from `__version__` (single source);
   `dev` extra is now pip-tools, pytest, pytest-cov; `test` extra and `py.typed` declaration removed.
 - Version is now `1.2.0.dev0`.
 - `.gitignore` ignores virtual environments by pattern (`venv*/`, `.venv*/`).
