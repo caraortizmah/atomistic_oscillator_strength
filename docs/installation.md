@@ -73,10 +73,10 @@ The lock file is valid for the Python version and OS it was compiled on.
 ### 1. Check package installation
 
 ```bash
-python3 -c "import qm_etdac_calculator; print(qm_etdac_calculator.__version__)"
+python3 -c "from importlib.metadata import version; print(version('qm_etdac_calculator'))"
 ```
 
-Expected output: `1.0.0`
+Expected output: `1.2.0.dev0`
 
 ### 2. Verify Command Availability
 
@@ -103,7 +103,7 @@ Read
 ## System Requirements
 
 - **OS**: Linux (primary support)
-- **Python**: 3.8 or later
+- **Python**: 3.11 or later
 - **Shell**: Bash 4.0+
 - **xas-qmol-parser**: Output retuls from the repo [https://github.com/caraortizmah/x-ray_scripting_out](xas-qmol-parser)
 - **Tools**: Standard Unix utilities (grep, awk, sed, etc.)
