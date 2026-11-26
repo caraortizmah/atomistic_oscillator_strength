@@ -15,7 +15,7 @@ The π-stacked **phenylalanine–tyrosine (Phe–Tyr)** amino-acid pair studied 
   then 0.5 Å steps), the range used in the paper. Shorter separations exist in the
   original data, but they are not chemically reliable and are not included here.
 - Fragment A = Phe (atoms 0–22), fragment B = Tyr (atoms 23–46). Aromatic ring atoms:
-  Phe 6–11, Tyr 29–33 and 35 (from `popmatrices/Bigscale/conditions_ETDCA.txt`).
+  Phe 6–11, Tyr 29–33 and 35 (from `popmatrices/Bigscale/conditions_ETDAC.txt`).
 
 The input CSV files were produced from the ORCA outputs by
 [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out).
