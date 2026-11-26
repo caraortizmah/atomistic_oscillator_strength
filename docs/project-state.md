@@ -69,10 +69,13 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 
 - Add `pip-audit` (vulnerability scan of the lock file) to CI at step 9? Proposed, not yet decided.
 - At step 6b JSON format could be used for the atom-range config, based on
-  `popmatrices/Bigscale/conditions_ETDCA.txt`.
+  `popmatrices/Bigscale/conditions_ETDAC.txt`.
 
 ## Future (not in 1.2.0)
 
+- Retire the notebook reference (`tests/notebook_reference.py`, `tests/test_notebook_equivalence.py`) once a validated release becomes the reference and the method changes; new ADR superseding ADR 0002 (criteria in `docs/development.md`).
+- Size limits (10 000 list entries, 50 MB per CSV) configurable; fixed values become defaults (ADR 0005).
+- Better sample IDs than `f<number>` (e.g. derived from the geometry or a UUID).
 - CI must handle one lock file per Python version (the lock is compiled for one interpreter); decide at step 9.
 - pandas lower bound (>= 2.1) is untested; the golden check passed on pandas 3.0. Test minimum versions in CI at step 9.
 - Rename the `resA_MOcore` / `resB_MOvirt` files. A and B label fragments and are not tied to
