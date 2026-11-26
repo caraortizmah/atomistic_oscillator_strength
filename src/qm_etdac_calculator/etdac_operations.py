@@ -1,11 +1,22 @@
 """
-Algebra operations that enables the electron transition decomposition atomic contribution
-(ETDAC) calculation.
+Algebra operations for the electron transition density atomic contribution (ETDAC) matrix.
 
-Read  https://doi.org/10.1039/D4CP04615C : 
-"X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids"
-for further information
+Read https://doi.org/10.1039/D4CP04615C :
+"X-ray absorption spectroscopy reveals charge transfer in pi-stacked aromatic amino acids"
+for the theory (eq. 5 of the paper).
+
+For one sample (one geometry):
+
+    step 1:  T[a, v] = sum_c  core_pop[a, c] * osc[v, c] / 100   over core MOs c in both matrices
+    step 2:  E[a, b] = sum_v  T[a, v] * virt_pop[b, v]           over virtual MOs v in both matrices
+
+a = core atom, b = virtual atom. Populations are in percent; only step 1 is divided by 100
+(intentional scale choice, ADR 0002).
 """
+
+from __future__ import annotations
+
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
