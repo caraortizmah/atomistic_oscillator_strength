@@ -17,6 +17,7 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Package moved to `src/qm_etdac_calculator/` (src layout); `pyproject.toml` sets `package-dir`.
 - `pyproject.toml`: runtime dependencies declared (numpy, pandas, h5py); Python >= 3.11;
   license as SPDX expression `GPL-3.0-or-later`; version read from `__version__` (single source);
   `dev` extra is now pip-tools, pytest, pytest-cov; `test` extra and `py.typed` declaration removed.
