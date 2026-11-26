@@ -30,8 +30,9 @@ python3 -m pip install --upgrade pip  # editable installs need pip >= 21.3
 Any folder name matching `venv*/` or `.venv*/` is ignored by git.
 
 All build configuration and dependencies are declared in `pyproject.toml` (PEP 621).
-There is no `setup.py` or `requirements.txt`. A hashed lock file for development will be
-generated from `pyproject.toml` with pip-tools (see `docs/adr/0001-pip-tools-before-uv.md`).
+There is no `setup.py` or `requirements.txt`. Development uses a hashed lock file,
+`requirements-dev.txt`, generated from `pyproject.toml` with pip-tools
+(see `docs/adr/0001-pip-tools-before-uv.md`).
 
 ### 3. Install package in development mode
 
