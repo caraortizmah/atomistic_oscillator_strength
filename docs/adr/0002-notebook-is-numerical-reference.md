@@ -14,8 +14,14 @@ which the notebook does not.
 
 The package must give the same numbers as the notebook.
 
-1. The core-population matrix is **not** trimmed. The
-   virtual-population matrix is **not** trimmed: zero columns carry no weight, but their existence is information.
+1. The core-population matrix **is** trimmed with `remove_noncontrb` (all-zero MO
+   columns removed), as the notebook does before `heatmap_ETDAC`. This is a technical
+   safeguard, not a scientific step: it does not change the ETDAC result (a zero column
+   adds zero to both products), but it prevents 0/0 = NaN in any later operation that
+   normalises by column sums. It does **not** remove NaN values (`NaN != 0` is true), so
+   it is not a guard against NaN already present in the inputs.
+   The virtual-population matrix is **not** trimmed: zero columns carry no weight, but
+   their existence is information.
 2. The first product (core populations × oscillator strengths) is divided by 100 (percent scale). The second product (× virtual populations) is not. This is an intentional scale choice; the analysis uses the global pattern.
 3. Products run over the MO labels the two matrices share.
 
