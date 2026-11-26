@@ -10,9 +10,14 @@ project uses [Semantic Versioning](https://semver.org/).
 
 - `docs/project-state.md`: status, decisions and plan.
 - `docs/adr/`: architecture decision records 0001–0004.
+- `requirements-dev.txt`: hashed lock file generated with pip-tools.
 
 ### Changed
 
+- `pyproject.toml`: runtime dependencies declared (numpy, pandas, h5py); Python >= 3.11;
+  license as SPDX expression `GPL-3.0-only`; version read from `__version__` (single source);
+  `dev` extra is now pip-tools, pytest, pytest-cov; `test` extra and `py.typed` declaration removed.
+- Version is now `1.2.0.dev0`.
 - `.gitignore` ignores virtual environments by pattern (`venv*/`, `.venv*/`).
 - `docs/installation.md`: `pyproject.toml` is the single build file; pip >= 21.3 required for editable installs.
 
