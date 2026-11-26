@@ -42,3 +42,9 @@ As result of these post-analyses, it was possible to quantify excited-state char
 Check the following publication for further information regarding the theoretical concepts and applications in chemistry:
 
 #### *X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids*:<br> https://doi.org/10.1039/D4CP04615C
+
+## License
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version. See [LICENSE](LICENSE).
