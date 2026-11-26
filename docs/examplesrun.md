@@ -7,13 +7,13 @@ For the installed version there are two main commands: `qm-etdac` and `qm-etdac-
 For non-installed version or developing mode program `qm-etdac` can be used by typing:
 
 ```bash
-python qm_etdac_calculator/cli.py
+python src/qm_etdac_calculator/cli.py
 ```
 
 and `qm-etdac-test` by typing:
 
 ```bash
-python qm_etdac_calculator/cli.py test
+python src/qm_etdac_calculator/cli.py test
 ```
 
 Regarding running the ETDAC calculator, there are two modes of doing it:
