@@ -48,3 +48,38 @@ The tests come in three layers:
 - `tests/notebook_reference.py` is a frozen, verbatim copy of the notebook's functions. It is the reference the package is compared against and must not be edited (ADR 0002).
 - "Random" inputs use fixed seeds, so every run is identical. They test the arithmetic,
   not the chemistry; the chemistry is covered by the golden test.
+
+### Why the tests compare against the notebook
+
+The reference notebook (`popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb`) produced the
+published results, so it is the only trusted definition of a correct ETDAC matrix. The
+package is a rewrite of it: new structure, new names, a vectorised kernel. Rewrites can
+change behaviour silently (a label mismatch handled differently, the ÷100 moved).
+
+- **Test oracle.** `tests/notebook_reference.py` is a frozen copy of the notebook's
+  functions: a trusted source of correct answers the package is checked against.
+- **Differential testing.** The 52 real samples happen to have no all-zero columns and
+  sorted atoms. With the notebook's code in the tests, both implementations can be given
+  *any* input (random matrices, partial label overlaps, zero columns) and must agree. This
+  explores cases the real data never contains.
+- **Verbatim, never edited.** If the copy were "fixed", it would stop being a reference, and
+  a test could pass while both versions are wrong in the same way. It keeps the notebook's
+  style (including bare `except:`) because it is evidence, not code to maintain.
+- **Characterization test** (M. Feathers): before refactoring legacy code, capture what it
+  does as tests, then refactor under their protection. A failure points at the package,
+  because the reference never changes.
+
+### When to retire the notebook reference
+
+The notebook reference is a transition tool, not a permanent part of the test suite. Retire
+it deliberately, with a new ADR superseding ADR 0002, when both are true:
+
+1. A release of the package has been validated against the notebook (all three test layers
+   green), so the package's own outputs can become the reference.
+2. The method is intentionally changed or extended (a new weighting, a new normalisation),
+   so "same numbers as the notebook" is no longer the goal and the equivalence test would
+   block legitimate changes.
+
+Then: delete `tests/notebook_reference.py` and `tests/test_notebook_equivalence.py`, keep
+the hand-computed and golden tests, and regenerate the golden reference with the released
+package (recording its version and provenance, ADR 0006). Until then, keep it.
