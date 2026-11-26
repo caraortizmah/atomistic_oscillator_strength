@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "X-ray Absorption Spectroscopy (XAS) program that calculates excited-state charge transfer as a core-electron transition decomposition analysis"
 readme = "README.md"
 requires-python = ">=3.11"
-license = "GPL-3.0-only"
+license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [
     {name = "Carlos A. Ortiz-Mahecha", email = "ortizmahecha@proton.me"},
