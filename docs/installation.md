@@ -34,7 +34,19 @@ There is no `setup.py` or `requirements.txt`. Development uses a hashed lock fil
 `requirements-dev.txt`, generated from `pyproject.toml` with pip-tools
 (see `docs/adr/0001-pip-tools-before-uv.md`).
 
-### 3. Install package in development mode
+### 3. Install the locked development dependencies
+
+```bash
+python3 -m pip install --require-hashes -r requirements-dev.txt
+```
+
+This installs exactly the versions recorded in the lock file, and pip refuses any
+download whose hash does not match. It contains:
+- numpy, pandas, h5py (runtime)
+- pytest and pytest-cov (testing)
+- pip-tools (to regenerate the lock file)
+
+### 4. Install the package in development (editable) mode
 
 ```bash
 pip install -e .
