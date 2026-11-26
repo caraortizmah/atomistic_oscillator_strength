@@ -58,6 +58,7 @@ qm-etdac = "qm_etdac_calculator.cli:run_qm_etdac_calculator"
 qm-etdac-test = "qm_etdac_calculator.cli:run_qm_etdac_test"
 
 [tool.setuptools]
+package-dir = {"" = "src"}
 packages = ["qm_etdac_calculator"]
 
 [tool.setuptools.dynamic]
