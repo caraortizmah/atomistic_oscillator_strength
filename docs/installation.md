@@ -34,6 +34,9 @@ There is no `setup.py` or `requirements.txt`. Development uses a hashed lock fil
 `requirements-dev.txt`, generated from `pyproject.toml` with pip-tools
 (see `docs/adr/0001-pip-tools-before-uv.md`).
 
+Steps 2–4 are automated by `scripts/dev-setup.sh` (run once per clone, or to rebuild
+`.venv`); afterwards just activate with `source .venv/bin/activate`.
+
 ### 3. Install the locked development dependencies
 
 ```bash
@@ -66,6 +69,18 @@ pip-sync requirements-dev.txt && python3 -m pip install --no-deps -e .
 
 To upgrade all pinned versions, add `--upgrade` to `pip-compile`.
 The lock file is valid for the Python version and OS it was compiled on.
+
+
+### Cleaning generated files
+
+```bash
+deactivate                     # if .venv is active
+scripts/clean.sh --dry-run     # list what would be removed
+scripts/clean.sh               # remove caches, build output, egg-info, __pycache__
+scripts/clean.sh --all         # also remove .venv (rebuild with scripts/dev-setup.sh)
+```
+
+It never touches source code, data, outputs, `.notes/` or `.git/`.
 
 
 ##  Verify installation
