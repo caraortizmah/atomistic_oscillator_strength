@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-26 · Checkpoint 1 (hygiene)_
+_Last updated: 2026-11-26 - Checkpoint 2 (pyproject + lock file)_
 
 ## How to resume
 
@@ -12,7 +12,7 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0 and 0b are committed; step 1 (hygiene) is in review.
+- The packaging plan is agreed. Steps 0–1 are committed; step 2 (pyproject + lock file) is in review.
 - Code is unchanged since `0d75b23`. The package installs, but `import qm_etdac_calculator`
   fails: notebook leftovers run at import time and there are 59 undefined names.
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces
@@ -41,13 +41,15 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | D9  | `etdac_editprinter` becomes tested functions in 1.2.0. Atom ranges come from a config file, not code. | here |
 | D10 | I implement the vectorised `ts_psb_acore_bvirt`, keeping the loop version as an explanatory comment. | here |
 | D11 | Private notes live in `.notes/`, excluded via `.git/info/exclude`. Public notes: this file and `docs/adr/`. | here |
+| D12 | License declared as SPDX `GPL-3.0-only`, for now, (matches the former GPLv3 classifier). | here |
+| D13 | Single-source version: `__version__` in `__init__.py`, read statically by setuptools. | here |
 
 ## Plan
 
 - [x] 0. Docs scaffolding: project-state, ADRs, CHANGELOG, private notes
 - [x] 0b. ADR 0004: temporary parent-folder data root
-- [ ] 1. Hygiene: `.gitignore` venv patterns; delete `setup.py` and `requirements.txt` *(in review)*
-- [ ] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough; fix the "This installs" list in `docs/installation.md`
+- [x] 1. Hygiene: `.gitignore` venv patterns; delete `setup.py` and `requirements.txt`
+- [ ] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough; fix the "This installs" list in `docs/installation.md` *(in review)*
 - [ ] 3. `git mv` package into `src/` (pure move)
 - [ ] 4. Tests (red): synthetic, notebook-equivalence, golden (skipped without data)
 - [ ] 5. Core: logging, I/O with path and output policy, operations matching the notebook, `Scheme` orchestration (green)
@@ -66,6 +68,8 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 
 ## Future (not in 1.2.0)
 
+- CI must handle one lock file per Python version (the lock is compiled for one interpreter); decide at step 9.
+- pandas lower bound (>= 2.1) is untested; the golden check passed on pandas 3.0. Test minimum versions in CI at step 9.
 - Rename the `resA_MOcore` / `resB_MOvirt` files. A and B label fragments and are not tied to
   core or virtual; for now this is documented only.
 - Rename `newFY_1-26`, then expose `--data-root`.
