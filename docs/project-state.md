@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-26 · Checkpoint 0 (documentation scaffolding)_
+_Last updated: 2026-11-26 · Checkpoint 0b (data-root amendment)_
 
 ## How to resume
 
@@ -12,7 +12,7 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Step 0 (this file, ADRs, CHANGELOG) is in review.
+- The packaging plan is agreed. Step 0 is committed; amendment 0b (ADR 0004) is in review.
 - Code is unchanged since `0d75b23`. The package installs, but `import qm_etdac_calculator`
   fails: notebook leftovers run at import time and there are 59 undefined names.
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces
@@ -32,6 +32,7 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | D1  | Lock dependencies with pip-tools (hashed). Revisit uv for Docker/n8n. | ADR 0001 |
 | D2  | The notebook is the numerical source of truth. Virtual matrix untrimmed; ÷100 on the first product only. | ADR 0002 |
 | D3  | Filesystem policy: strict data root, outputs only in `etdac_outputs/`, nothing overwritten. | ADR 0003 |
+| D3a | Default data root temporarily widened to the parent of the logs folder (rule stays strict) until `newFY_1-26` is renamed. | ADR 0004 |
 | D4  | CLI keeps the documented names: `qm-etdac noauto`, `qm-etdac auto`, `qm-etdac check`, `qm-etdac --help`, `qm-etdac-test` (built-in self-check). | here |
 | D5  | Python >= 3.11. Next release 1.2.0. | here |
 | D6  | `src/` layout. Nothing in `plot/` or `popmatrices/` is moved, renamed or deleted. | here |
@@ -43,7 +44,8 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 
 ## Plan
 
-- [ ] 0. Docs scaffolding: project-state, ADRs, CHANGELOG, private notes *(in review)*
+- [x] 0. Docs scaffolding: project-state, ADRs, CHANGELOG, private notes
+- [ ] 0b. ADR 0004: temporary parent-folder data root *(in review)*
 - [ ] 1. Hygiene: `.gitignore` venv patterns; delete `setup.py` and `requirements.txt`
 - [ ] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough
 - [ ] 3. `git mv` package into `src/` (pure move)
