@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-26 - Checkpoint 2 (pyproject + lock file)_
+_Last updated: 2026-11-26 - Checkpoint 3 (src layout)_
 
 ## How to resume
 
@@ -12,7 +12,7 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0–1 are committed; step 2 (pyproject + lock file) is in review.
+- The packaging plan is agreed. Steps 0–2 are committed; step 3 (src layout) is in review.
 - Code is unchanged since `0d75b23`. The package installs, but `import qm_etdac_calculator`
   fails: notebook leftovers run at import time and there are 59 undefined names.
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces
@@ -50,20 +50,20 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 - [x] 0. Docs scaffolding: project-state, ADRs, CHANGELOG, private notes
 - [x] 0b. ADR 0004: temporary parent-folder data root
 - [x] 1. Hygiene: `.gitignore` venv patterns; delete `setup.py` and `requirements.txt`
-- [ ] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough; fix the "This installs" list in `docs/installation.md` *(in review)*
-- [ ] 3. `git mv` package into `src/` (pure move)
+- [x] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough; fix the "This installs" list in `docs/installation.md`
+- [ ] 3. `git mv` package into `src/` (pure move) *(in review)*
 - [ ] 4. Tests (red): synthetic, notebook-equivalence, golden (skipped without data)
 - [ ] 5. Core: logging, I/O with path and output policy, operations matching the notebook, `Scheme` orchestration (green)
 - [ ] 6. CLI as documented, inside the package
 - [ ] 6b. `etdac_editprinter` as functions; atom-range config
 - [ ] 7. Vectorised `ts_psb_acore_bvirt` (spec + failing test provided)
 - [ ] 8. ruff (incl. `S` security rules), then mypy, then pre-commit
-- [ ] 9. GitHub Actions CI: least-privilege token, SHA-pinned actions, hashed install, build + `twine check`
+- [ ] 9. GitHub Actions CI: least-privilege token, SHA-pinned actions, hashed install, build + `twine check`; recompile the lock and fail on diff; `pip-audit` (proposed)
 - [ ] 10. README, docs cleanup (incl. resA/resB naming note, uninstall note, empty "Run Pipeline" section in `docs/installation.md`), release 1.2.0
 
 ## Open questions
 
-- None blocking.
+- Add `pip-audit` (vulnerability scan of the lock file) to CI at step 9? Proposed, not yet decided.
 - At step 6b JSON format could be used for the atom-range config, based on
   `popmatrices/Bigscale/conditions_ETDCA.txt`.
 
