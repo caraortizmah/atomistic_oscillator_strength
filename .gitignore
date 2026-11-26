@@ -91,3 +91,8 @@ popmatrices/*/
 
 */*.txt
 */*/*.txt
+# ===== Committed test data =====
+# Public Phe-Tyr data set used by the golden test (see tests/data/phe_tyr/README.md).
+# Re-include it after the *.csv, *.log and *.h5 rules above. Nothing else is affected.
+!tests/data/phe_tyr/
+!tests/data/phe_tyr/**
