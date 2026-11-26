@@ -64,10 +64,11 @@ MANIFEST
 htmlcov/
 
 # ===== Virtual Environments =====
-venv/
+venv*/
 ENV/
 env/
 .venv
+.venv*/
 
 # ===== IDE & Editors =====
 .vscode/
