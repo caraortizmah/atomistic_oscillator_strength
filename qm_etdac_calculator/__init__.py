@@ -5,7 +5,7 @@ A package for calculating the Electron Transition Density Atomic Contribution (E
 Matrix using the parsed data of the quantum-charge-transfer-calculator package.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.2.0.dev0"
 __author__ = "Carlos Ortiz-Mahecha"
 
 from .config import ConfigMan
