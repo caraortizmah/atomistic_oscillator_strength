@@ -49,19 +49,23 @@ download whose hash does not match. It contains:
 ### 4. Install the package in development (editable) mode
 
 ```bash
-pip install -e .
+python3 -m pip install --no-deps -e .
 ```
 
-### 4. Install development dependencies
+`--no-deps` because the dependencies already came from the lock file in step 3.
+
+### Updating the lock file
+
+After changing dependencies in `pyproject.toml`:
 
 ```bash
-pip install -e ".[dev]"
+pip-compile --extra dev --generate-hashes --allow-unsafe --strip-extras \
+    -o requirements-dev.txt pyproject.toml
+pip-sync requirements-dev.txt && python3 -m pip install --no-deps -e .
 ```
 
-This installs:
-- pytest and pytest-cov (testing)
-- shellcheck-py (shell script linting)
-- pandas
+To upgrade all pinned versions, add `--upgrade` to `pip-compile`.
+The lock file is valid for the Python version and OS it was compiled on.
 
 
 ##  Verify installation
