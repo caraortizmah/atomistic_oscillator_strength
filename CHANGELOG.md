@@ -68,6 +68,7 @@ project uses [Semantic Versioning](https://semver.org/).
 - Population warnings (ADR 0005): a value above 100 %, or an MO column adding up to more than 100 % ("at the edge" up to 102.5 %, "beyond the rounding tolerance" above), gives one warning per CSV file with counts, first occurrences and what to check. Sums use `math.fsum` plus a 1e-9 tolerance, so float noise (`0.4 + 32.2 + 67.4`) never warns; sums below 100 % are normal and give no warning.
 - Size limits (ADR 0005) against resource exhaustion: list files up to 10 000 entries, 10 001 to 10 100 with a warning to split the samples, more is an error; list files at most 3 MB and CSV files at most 50 MB, read with `gate_controler.read_limited()`, which never reads more than limit + 1 bytes. The errors say they come from the size policy, not from a program error.
 - `docs/input-format.md`: size limits section; hashes of at most 9 characters recommended.
+- Hash policy marked temporary in code comments, ADR 0005 and `docs/input-format.md`: hashes will have to be unique across all list files of one system once multi-file runs exist.
 - ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
 - `docs/input-format.md` and ADR 0005: the 2.5 rounding tolerance covers systems of up to 47 atoms with one decimal; larger systems need more precise values (user's responsibility).
 

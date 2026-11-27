@@ -27,6 +27,7 @@ f12,inputs/resA_MOcore_AB_3.7A_1-26.csv
   file. `f<number>` is a convention, not a rule. The same hashes must appear in all three
   list files (in any order): samples are paired by hash, not by line position.
 - **Keep hashes short**: at most 9 characters is recommended (e.g. `f0001`, enough for 10 000 samples with room to spare). Short hashes keep the messages and logs readable and the list files small.
+- **Temporary hash policy**: the rules above assume that one run reads one set of three list files. When a large system is split into many list files (planned, e.g. 1 000 000 samples in 100 files), hashes will have to be unique across all of them and may be longer; this page will change with that version.
 - **Path**: relative to the folder of the list file. Absolute paths are not allowed. The
   path must stay inside the data root (by default the parent folder of the list files'
   folder; ADR 0003, ADR 0004) and point to an existing file.
