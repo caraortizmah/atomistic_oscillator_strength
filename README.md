@@ -1,19 +1,19 @@
 # atomistic_oscillator_strength
 
-Calculates the **electron transition density atomic contribution (ETDAC) matrix** from X-ray absorption spectroscopy (XAS) calculations. The ETDAC matrix _splits_ the intensity of core-to-virtual electronic transitions (oscillator strengths) into contributions from pairs of atoms: the atom the core electron leaves (core atom) and the atom where it arrives (virtual atom). With it, excited-state charge transfer between molecular fragments can be quantified, for example in π-stacked aromatic amino acids.
+Calculates the **electron transition density atomic contribution (ETDAC) matrix** from X-ray absorption spectroscopy (XAS) calculations. The ETDAC matrix _splits_ the core-electron transition intensities (from core to virtual molecular orbitals) into contributions from pairs of atoms: the atom the core electron leaves (core atom) and the atom where it arrives (virtual atom). With it, excited-state charge transfer between molecular fragments can be quantified, for example in π-stacked aromatic amino acids.
 
 The method and its applications are described in:
 
 > *X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids*, Phys. Chem. Chem. Phys. (2025). https://doi.org/10.1039/D4CP04615C
 
-The ETDAC matrix element is written in the paper as [$$\tilde{\gamma}^{[l,m]}_{AA^{\prime}}$$](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c). It is built from three inputs per molecular geometry: the Löwdin populations of the core molecular orbitals (MOs) on each atom, the Löwdin populations of the virtual MOs on each atom, and the oscillator strengths of the core-to-virtual MO transitions.
+The ETDAC matrix element is written in the paper as [$$\tilde{\gamma}^{[l,m]}_{AA^{\prime}}$$](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c). It is built from three inputs per molecular geometry: the Löwdin populations of the core molecular orbitals (MOs) on each atom, the Löwdin populations of the virtual MOs on each atom, and the core-electron transition intensities from each core MO to each virtual MO.
 
 ## How it works
 
 ```mermaid
 flowchart LR
     A["ORCA XAS<br/>calculations"] --> B["xas-qmol-parser"]
-    B --> C["Inputs per geometry:<br/>core-MO populations,<br/>virtual-MO populations,<br/>oscillator strengths<br/>(3 list files + CSV matrices)"]
+    B --> C["Inputs per geometry:<br/>core-MO populations,<br/>virtual-MO populations,<br/>core-electron<br/>transition intensities<br/>(3 list files + CSV matrices)"]
     C --> D["qm_etdac_calculator<br/>checks the inputs,<br/>calculates ETDAC"]
     D --> E["etdac_outputs/<br/>data_etdac_matrix.h5<br/>(one matrix per geometry)"]
     D --> F["data_etdac_matrix.log<br/>(what happened in the run)"]

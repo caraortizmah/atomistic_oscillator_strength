@@ -8,7 +8,7 @@ For every molecular geometry (a **sample**, named by a short **hash** such as `f
 |--------|------|---------|--------|
 | core-MO populations | atoms | core MOs | Löwdin population of each core MO on each atom, in percent |
 | virtual-MO populations | atoms | virtual MOs | Löwdin population of each virtual MO on each atom, in percent |
-| core→virtual oscillator strengths | virtual MOs | core MOs | oscillator strength of the transition from the core MO to the virtual MO |
+| core-electron transition intensities | virtual MOs | core MOs | intensity of the transition from the core MO to the virtual MO |
 
 Each matrix is one CSV file. Three **list files** say which CSV file belongs to which sample:
 
@@ -16,7 +16,7 @@ Each matrix is one CSV file. Three **list files** say which CSV file belongs to 
 |--------------------------|-----------|------------------|
 | `resA_MOcore_list.log` | core-MO population matrices | `num-1` |
 | `resB_MOvirt_list.log` | virtual-MO population matrices | `num-1` |
-| `corevirt_fosce_AB_list.log` | core→virtual oscillator-strength matrices | `virt\core` |
+| `corevirt_fosce_AB_list.log` | core-electron transition-intensity matrices | `virt\core` |
 
 In the example names, A and B label the two molecular fragments (e.g. Phe and Tyr), not core and virtual. A complete, real example is in `tests/data/phe_tyr/`.
 
@@ -65,7 +65,7 @@ f12,inputs/resA_MOcore_AB_3.7A_1-26.csv
 The CSV files are read as produced by xas-qmol-parser (comma-separated):
 
 - population files: header `num-1,sym,lvl,<MO labels…>`; one row per atom (`sym`: element symbol, e.g. `C`; `lvl`: orbital type, e.g. `s`);
-- oscillator-strength files: header `virt\core,<core MO labels…>`; one row per virtual MO.
+- transition-intensity files: header `virt\core,<core MO labels…>`; one row per virtual MO.
 
 Rules:
 
@@ -75,7 +75,7 @@ Rules:
 - MO labels (header) and row labels (first column): non-negative integers, unique within the file.
 - Every row has as many fields as the header.
 - Numbers: plain decimal numbers such as `0`, `0.0`, `99.6`, `8.73323e-06` or `1E5`. Not allowed: `nan`, `inf`, empty cells, text, spaces, a `+` or `=` at the start, `1_000`, non-ASCII digits. `.5` and `5.` are read as 0.5 and 5.0 with a warning: write the zero.
-- Populations and oscillator strengths are never negative (`-0.0` is accepted as zero).
+- Populations and transition intensities are never negative (`-0.0` is accepted as zero).
 - `sym` and `lvl`: 1 to 8 letters (A-Z, a-z), e.g. `C`, `atom`, `s`, `lvlMO`.
 
 Common mistakes in CSV files (rejected with an error naming the sample and file):
