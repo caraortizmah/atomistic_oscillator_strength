@@ -156,6 +156,7 @@ def provenance(inputs: Sequence[InputRecord]) -> dict[str, str]:
 def _write_groups(results: Mapping[str, pd.DataFrame], temporary: Path, attrs: Mapping[str, str]) -> None:
     """Write every sample into a new file (mode "x": the temporary name must not exist)."""
     with h5py.File(temporary, "x") as file:
+        file.attrs.update(attrs)
         for hash_, frame in results.items():
             group = file.create_group(f"sample_{hash_}")
             group.create_dataset("ETDAC_matrix", data=frame.to_records(index=True), compression="gzip")
@@ -164,20 +165,24 @@ def _write_groups(results: Mapping[str, pd.DataFrame], temporary: Path, attrs: M
             group.attrs["index_name"] = frame.index.name
 
 
-def write_etdac_h5(results: Mapping[str, pd.DataFrame], path: Path) -> None:
+def write_etdac_h5(results: Mapping[str, pd.DataFrame], path: Path, inputs: Sequence[InputRecord]) -> None:
     """
     Write the ETDAC matrices to a new .h5 file at `path`, atomically and without overwriting.
 
     Args:
         results: {hash: ETDAC matrix}, e.g. from Operations.etdac_batch; written in this order.
         path: the file to create (from prepare_outputs); must not exist.
+        inputs: the files the results were made from (Controler.inputs_read), recorded in
+            the file's provenance attributes (ADR 0006).
     Raises:
         OutputError: `path` exists, or appeared while the file was being written.
-        ValueError: no results, or a key that is not a valid hash (a program error: the
+        ValueError: no results, no inputs, or a key that is not a valid hash (a program error: the
             keys come from validated list files).
     """
     if not results:
         raise ValueError("no results to write")
+    if not inputs:
+        raise ValueError("no input files recorded: a result without provenance cannot be traced (ADR 0006)")
     for hash_ in results:
         if HASH_PATTERN.fullmatch(hash_) is None:
             raise ValueError(f"invalid sample hash {untrusted(hash_)}")
@@ -186,7 +191,7 @@ def write_etdac_h5(results: Mapping[str, pd.DataFrame], path: Path) -> None:
 
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
     try:
-        _write_groups(results, temporary)
+        _write_groups(results, temporary, provenance(inputs))
         with temporary.open("rb") as handle:
             os.fsync(handle.fileno())  # on disk before it gets its final name
         try:
