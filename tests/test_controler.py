@@ -458,3 +458,28 @@ def test_file_swapped_between_check_and_parse_has_no_effect(
     monkeypatch.setattr(gate, "read_text_lines", check_then_swap)
     frame = _load(tree, POP.encode())
     assert frame["7"].tolist() == [60.0, 40.0]
+
+
+# --- CSV values through load_dict_data (step 5d, commit 3a) ---------------------------
+
+
+def test_nan_in_a_csv_is_rejected_instead_of_spreading(tree: dict[str, Path]) -> None:
+    """Before step 5d, 'nan' was read silently as NaN and spread through both products."""
+    with pytest.raises(InputError, match="is not a number"):
+        _load(tree, b"num-1,sym,lvl,7\n1,C,s,nan\n")
+
+
+def test_text_in_a_number_column_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="is not a number"):
+        _load(tree, b"num-1,sym,lvl,7\n1,C,s,abc\n")
+
+
+def test_abbreviated_decimals_are_parsed_as_full_numbers(tree: dict[str, Path]) -> None:
+    frame = _load(tree, b"num-1,sym,lvl,7\n1,C,s,.5\n2,C,s,5.\n")
+    assert frame["7"].tolist() == [0.5, 5.0]
+
+
+@pytest.mark.parametrize(("list_name", "index_col"), PHE_TYR_LISTS.items())
+def test_real_phe_tyr_data_gives_no_warning(list_name: str, index_col: str, caplog: pytest.LogCaptureFixture) -> None:
+    Controler(default_data_root(PHE_TYR)).load_dict_data(PHE_TYR / list_name, index_col)
+    assert [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING] == []
