@@ -45,7 +45,8 @@ Step 5d, commit 2: CSV files are read in three stages (ADR 0005, "Reading CSV fi
 1. the file's bytes are read once; everything below works on that copy (no gap between
    checking and parsing);
 2. the text is checked as plain lines and cells, with the same line rules as list files
-   (read_text_lines) and a plain split on commas, before pandas interprets anything:
+   (read_text_lines) and a plain split on commas, then structure and values
+   (validation.check_csv_structure, check_csv_values), before pandas interprets anything:
    pandas would otherwise decide silently (duplicate labels renamed, empty cells to NaN,
    quoted cells with commas or line breaks accepted);
 3. only then pandas parses the same text exactly as the notebook did.
@@ -63,7 +64,7 @@ import pandas as pd
 
 from .errors import FORMAT_HINT, InputError
 from .logging_setup import untrusted
-from .validation import check_csv_structure, check_hash
+from .validation import check_csv_structure, check_csv_values, check_hash
 
 logger = logging.getLogger(__name__)
 
@@ -313,7 +314,9 @@ class Controler:
         """Read one CSV file in three stages: bytes once, text checked, then parsed by pandas."""
         context = f"{list_name} line {entry.line} ({untrusted(entry.hash)}, {untrusted(entry.path.name)})"
         lines = read_text_lines(entry.path.read_bytes(), f"{context}: {untrusted(entry.path.name)}")  # stage 1
-        check_csv_structure([(number, line.split(",")) for number, line in lines], kind, context)  # stage 2
+        rows = [(number, line.split(",")) for number, line in lines]
+        check_csv_structure(rows, kind, context)  # stage 2: structure, then values
+        check_csv_values(rows, kind, context)
         text = "\n".join(line for _, line in lines) + "\n"
         return pd.read_csv(io.StringIO(text), delimiter=",", index_col=index_col)  # stage 3, as the notebook
         #returning the "standard" pd.read_csv(entry.path, delimiter=",", index_col=index_col) # enabling a vulnerability: TOCTOU atack
