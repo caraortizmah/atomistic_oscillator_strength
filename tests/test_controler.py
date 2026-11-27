@@ -1,4 +1,4 @@
-"""Reading list files: format (step 5c, bullet 1).
+"""Reading list files: format (step 5c, bullet 1) and path policy (bullet 2).
 
 A list file has one `hash,path` entry per line. These tests pin how the reader treats
 editing leftovers (UTF-8 BOM, line endings, blank lines) and malformed lines. Each rejected case
@@ -251,8 +251,9 @@ def test_order_and_line_numbers_are_kept(tree: dict[str, Path]) -> None:
 
 def test_absolute_path_is_rejected_even_inside_the_root(tree: dict[str, Path]) -> None:
     inside = (tree["logs"] / "inputs" / "a.csv").resolve()
-    with pytest.raises(InputError, match="absolute paths are not allowed"):
+    with pytest.raises(InputError, match="absolute paths are not allowed") as excinfo:
         _read(tree, f"f10,{inside}")
+    assert str(excinfo.value).endswith("(see docs/input-format.md)")
 
 
 def test_path_escaping_the_data_root_is_rejected(tree: dict[str, Path]) -> None:
