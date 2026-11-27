@@ -141,3 +141,14 @@ def test_inputs_are_not_modified() -> None:
     Operations().etdac_batch(core, virt, osc)
     for name, d in (("core", core), ("virt", virt), ("osc", osc)):
         pd.testing.assert_frame_equal(d["s1"], before[name]["s1"], check_exact=True, obj=name)
+
+
+def test_etdac_matrix_can_return_the_transition_matrix() -> None:
+    """Case A, step 1 alone: T = [[60*0.5/100], [40*0.5/100]] = [[0.30], [0.20]] (virtual MO 92)."""
+    core = frame_from_csv(CASE_A["core"], POP_INDEX).drop(columns=["sym", "lvl"])
+    virt = frame_from_csv(CASE_A["virt"], POP_INDEX).drop(columns=["sym", "lvl"])
+    osc = frame_from_csv(CASE_A["osc"], OSC_INDEX)
+    transition, etdac = etdac_matrix(core, virt, osc, return_transition=True)
+    assert list(transition.columns) == ["92"]
+    np.testing.assert_allclose(transition.to_numpy(dtype=float), [[0.30], [0.20]], rtol=1e-12)
+    np.testing.assert_allclose(etdac.to_numpy(dtype=float), [[0.09, 0.21], [0.06, 0.14]], rtol=1e-12)
