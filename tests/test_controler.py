@@ -1,4 +1,4 @@
-"""Reading list files: format (step 5c, bullet 1) and path policy (bullet 2).
+"""Reading list files: format (step 5c, bullet 1), path policy (bullet 2), loading CSVs (bullet 3).
 
 A list file has one `hash,path` entry per line. These tests pin how the reader treats
 editing leftovers (UTF-8 BOM, line endings, blank lines) and malformed lines. Each rejected case
