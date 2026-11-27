@@ -1,146 +1,119 @@
-# %% [markdown]
-# #### Big data sampling of the standard post analysis
-# 
-# Data presented here, as new inputs for this jupyter-notebook, comes from the written-shell pipeline created to extract X-ray excited-state features from some specific pair of atoms group (e.g. pair amino acid). Outputs here are filtered features that account for specific transitions (coreMO -> virtualMO) for the specific pair of atoms group
-
-# %% [markdown]
-# ###### Check out the paper of this work <br>
-# ##### *X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids*:<br> https://doi.org/10.1039/D4CP04615C
-
-# %%
-import numpy as np
-import pandas as pd
-import csv as csv
-import h5py
-
-# %%
 """
-Electron transition density atomic contribution matrix
-$$
-\huge \tilde{\gamma}^{[l,m]}_{AA^{\prime}}
-$$
+Input and output of the ETDAC calculation (the program's "gate").
+
+Step 5c, bullet 1: reading the format of a list file. A list file has one entry per line:
+
+    hash,path
+
+e.g. `f10,inputs/resA_MOcore_AB_3.5A_1-26.csv`. The reader is strict about structure and
+tolerant only about harmless editing leftovers, which it reports:
+
+- UTF-8 only; a UTF-8 BOM at the start is removed (INFO).
+- Line endings \\n, \\r\\n or \\r are all line breaks; \\r\\n or \\r alone is reported at INFO,
+  a mix of them at WARNING. A lone \\r therefore splits a line; it never edits a path.
+- Blank or whitespace-only lines are ignored (WARNING with file and line).
+- Any other control or invisible character is an error, including tab, ANSI escape,
+  NUL, Unicode line separators, zero-width and bidirectional-override characters
+  (the latter are the "Trojan Source" trick, CVE-2021-42574).
+- Exactly two non-empty fields; leading or trailing spaces in a field are an error;
+  spaces inside a path work in Python (no shell is involved) but give a WARNING.
+
+Hash content (pattern, duplicates, the same hashes in all three files) is validated in
+step 5d; the path policy (ADR 0003/0004) is bullet 2 of step 5c.
 """
 
-# %% [markdown]
-# ____________________________
+from __future__ import annotations
 
-# %% [markdown]
-# #### General case of the post analysis for a list of molecules
+import logging
+import re
+from typing import NamedTuple
 
-# %% [markdown]
-# The required data are the standard csv files obtained from the https://github.com/caraortizmah/x-ray_scripting_out pipeline which encodes the required information for the calculation of the electronic transition density atomic contribution matrix.
+from .errors import InputError
+from .logging_setup import untrusted
 
-# %% [markdown]
-# #### Before starting, create a list file (for the csv files) with two columns (hash, file) listing all the csv files by property/component.
-# For instance the case of *resA core MO*:
-# 
-# 
-# Create a file named `resA_MOcore_list.log` where the first column is a list with a hash, e.g., f01, f02, ...f99 and
-# the second is the name of the csv file to explore (in this case only the resA MO core csv files).
-# 
-# The file should look like:
-# >  f00,(path)../newFY_1-26/resA_MOcore_AB_2.5A_1-26.csv <br>
-# >  f01,(path)../newFY_1-26/resA_MOcore_AB_2.6A_1-26.csv <br>
-# >  f02,(path)../newFY_1-26/resA_MOcore_AB_2.7A_1-26.csv <br>
-# >  f03,(path)../newFY_1-26/resA_MOcore_AB_2.8A_1-26.csv <br>
-# >  ... <br>
-# >  f61,(path)../newFY_1-26/resA_MOcore_AB_11.0A_1-26.csv <br>
+logger = logging.getLogger(__name__)
 
-class Controler:
-    def __init__(self):
-        return 0
-    
-    def is_datawell(self, log_file: str) -> bool:
-        try:
-            with open(log_file, 'r') as file:
-                for line in file:
-                    line = line.strip()
-                    if (len(line.split(',')) !=2 ):
-                        return False
-                    check_tmp = line.split(',')[0]
-                    #check patterns in hash 
-                    if not bool(check_tmp and check_tmp.strip()):
-                        return False #if blank spaces or empty
-                    if (' ' in check_tmp.strip()):
-                        return False # if spaces between words
-                    if not check_tmp.replace(' ', '').isalnum():
-                        return False # if not alphanumeric
-                    check_tmp = line.split(',')[1]
-                    if not os.path.isfile(check_tmp):
-                        return False
-                    try:
-                        with open(check_tmp, 'r') as f:
-                            f.read()
-                    except Exception as e:
-                        return False
-        except Exception as e:
-            self.errors.append(f"Failed to open {log_file} file: {str(e)}\n")    
-            return False
-        #condition
-        return True
-        
-    def get_dict_data(self, filename: str =log_file, index_col_condition='num-1') -> Dict:
-        """
-    Reads from a two-column file the hash and the file and
-     stores the information of the csv file into a dictionary.
-    Format file to be read:
-     f00,(path)../newFY_1-26/resA_MOcore_AB_2.5A_1-26.csv
-     f01,(path)../newFY_1-26/resA_MOcore_AB_2.6A_1-26.csv
-     f02,(path)../newFY_1-26/resA_MOcore_AB_2.7A_1-26.csv
-     f03,(path)../newFY_1-26/resA_MOcore_AB_2.8A_1-26.csv
-      ...
-     f61,(path)../newFY_1-26/resA_MOcore_AB_11.0A_1-26.csv 
+_BOM = b"\xef\xbb\xbf"
+_LINE_BREAK = re.compile(r"\r\n|\r|\n")
+_BLANK = re.compile(r"[ \t]*")
+# C0 controls (tab included), DEL, C1 controls, line/paragraph separators,
+# zero-width characters and BOM, bidirectional overrides and isolates
+_FORBIDDEN = re.compile(
+    "[\x00-\x1f\x7f-\x9f\u2028\u2029\u200b-\u200f\u2060\ufeff\u202a-\u202e\u2066-\u2069]"
+)
+
+
+class ListEntry(NamedTuple):
+    """One entry of a list file: its line number (1-based), hash and path as written."""
+
+    line: int
+    hash: str
+    path: str
+
+
+def _report_line_endings(text: str, where: str) -> None:
+    crlf = text.count("\r\n")
+    counts = {"\\r\\n": crlf, "\\n": text.count("\n") - crlf, "\\r": text.count("\r") - crlf}
+    used = {kind: n for kind, n in counts.items() if n}
+    if len(used) > 1:
+        detail = ", ".join(f"{kind}: {n}" for kind, n in used.items())
+        logger.warning("%s has inconsistent line endings (%s); each one is treated as a line break", where, detail)
+    elif "\\r\\n" in used:
+        logger.info("%s uses Windows line endings (\\r\\n)", where)
+    elif "\\r" in used:
+        logger.info("%s uses classic Mac line endings (\\r)", where)
+
+
+def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
+    """
+    Parse the raw bytes of a list file into entries, in file order.
+
     Args:
-     filename (str): two-column file filename having
-      a hash for each path file.
-     index_col_condition (str): the name of the index 
-      column to read the csv as pandas structure.
-      Default as 'num-1'
-    Output (dict): keys are the hashes and values of the dictionary
-     are the pandas frame for each csv file.
-        """
-        # Initialize a dictionary
-        dict_raw = {}
-        # Open the list file
-        with open(filename, 'r') as file:
-            # Read each line in the file
-            for line in file:
-                line = line.strip()
-    # {(key) hash = line.split(',')[0] : (value) file_n = line.split(',')[1]}
-                dict_raw.update({
-                    line.split(',')[0]: # key
-                    pd.read_csv(line.split(',')[1],
-                    delimiter=',',
-                    index_col=index_col_condition) # value
-                })
-        return dict_raw
-    
-    def save_ETDAC_matrix(self, data_dict: Dict, data_set_name: str='data_etdac_matrix.h5') -> Bool:
-        """
-        Get the node/edge features for each molecule and save
-        all the results in H5PY format.
-        Args:
-        self is data_dict (dict) contains a hash (key) and 
-        the ETDAC matrix (value) of each molecule.
-        data_set_name (str, optional) is the name of the H5PY file to be
-        created. By default that file is called "data_etdac_matrix.h5".
-        """
-        
-        try:
-            with h5py.File(data_set_name, 'w') as f:
-                # Get node/edge features for the list of molecules
-                for hash in data_dict.keys():
-                #df.to_hdf('data.h5', key='df', mode='w', format='table')
-                    qm_group = f.create_group(f"sample_{hash}")
-                    qm_group.create_dataset("ETDAC_matrix", 
-                                    data=data_dict[hash].to_records(index=True),  # Preserves index+columns
-                                    compression="gzip")
-                
-                    qm_group.attrs["hash"] = hash
-                    qm_group.attrs["column_name"] = data_dict[hash].columns.name # Save column name
-                    qm_group.attrs["index_name"] = data_dict[hash].index.name  # Save row name
-            print(f"Calculated ETDAC was saved in H5 format\n")
-            return True
-        except Exception as e:
-            self.errors.append(f"Failed to save calculated ETDAC in a H5 file: {str(e)}\n")    
-            return False
+        data: the file content as bytes.
+        name: the file name, used in messages.
+    Returns:
+        One ListEntry per non-blank line.
+    Raises:
+        InputError: the file is not valid UTF-8, has a malformed line, or has no entries.
+    """
+    where = untrusted(name)
+    if data.startswith(_BOM):
+        data = data[len(_BOM) :]
+        logger.info("%s starts with a UTF-8 BOM; removed", where)
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise InputError(f"{where} is not valid UTF-8 (byte {error.start})") from None
+
+    _report_line_endings(text, where)
+    lines = _LINE_BREAK.split(text)
+    if lines and lines[-1] == "":
+        lines.pop()  # the final line break is normal, not a blank line
+
+    entries: list[ListEntry] = []
+    for number, line in enumerate(lines, start=1):
+        prefix = f"{where} line {number}"
+        if _BLANK.fullmatch(line):
+            logger.warning("%s: blank line ignored", prefix)
+            continue
+        forbidden = _FORBIDDEN.search(line)
+        if forbidden:
+            raise InputError(
+                f"{prefix}: forbidden character {untrusted(forbidden.group())} at position {forbidden.start() + 1}"
+            )
+        fields = line.split(",")
+        if len(fields) != 2:
+            raise InputError(f"{prefix}: expected 2 fields 'hash,path', found {len(fields)}: {untrusted(line)}")
+        hash_, path = fields
+        for label, value in (("hash", hash_), ("path", path)):
+            if value == "":
+                raise InputError(f"{prefix}: empty {label}")
+            if value != value.strip(" "):
+                raise InputError(f"{prefix}: {label} has leading or trailing spaces: {untrusted(value)}")
+        if " " in path:
+            logger.warning("%s: path contains spaces (works, but avoid it): %s", prefix, untrusted(path))
+        entries.append(ListEntry(number, hash_, path))
+
+    if not entries:
+        raise InputError(f"{where} has no entries")
+    return entries
