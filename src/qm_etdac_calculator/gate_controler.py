@@ -38,10 +38,10 @@ original string.
 
 Step 5c, bullet 3: load_dict_data() reads the CSV file of every entry (as the notebook did,
 but through the path policy) and returns {hash: DataFrame}. A duplicate hash in a list file
-is an error here, because a dict would silently keep only the last one.
+is an error here, because a dict would silently keep only the last one. Step 5d adds the
+hash pattern (validation.check_hash) to the same first pass, before any CSV is opened.
 
-Hash pattern and the same hashes in all three files, and the CSV content, are validated in
-step 5d (ADR 0005).
+The same hashes in all three files, and the CSV content, are validated in step 5d (ADR 0005).
 """
 
 from __future__ import annotations
@@ -55,6 +55,7 @@ import pandas as pd
 
 from .errors import InputError
 from .logging_setup import untrusted
+from .validation import check_hash
 
 logger = logging.getLogger(__name__)
 
@@ -262,6 +263,7 @@ class Controler:
         # 1. check the whole list before opening any CSV file (fail fast, cheapest first)
         first_line: dict[str, int] = {}
         for entry in entries:
+            check_hash(entry.hash, f"{name} line {entry.line}")
             if entry.hash in first_line:
                 raise InputError(
                     f"{name} line {entry.line}: duplicate hash {untrusted(entry.hash)} "
