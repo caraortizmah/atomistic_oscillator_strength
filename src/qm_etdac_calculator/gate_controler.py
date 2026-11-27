@@ -342,9 +342,8 @@ class Controler:
 
         base = list_path.parent
         resolved_entries: list[ResolvedEntry] = []
-        for entry in parse_list_file(
-            read_limited(list_path, LIST_FILE_MAX_BYTES, untrusted(list_path.name), "list files"), list_path.name
-        ):
+        list_data = read_limited(list_path, LIST_FILE_MAX_BYTES, untrusted(list_path.name), "list files")
+        for entry in parse_list_file(list_data, list_path.name):
             prefix = f"{untrusted(list_path.name)} line {entry.line}"
             written = Path(entry.path)
             if written.is_absolute():
@@ -363,6 +362,7 @@ class Controler:
                 raise InputError(f"{prefix}: not a regular file: {untrusted(entry.path)}")
             resolved_entries.append(ResolvedEntry(entry.line, entry.hash, resolved))
         logger.debug("%s: %d entries passed the path policy", untrusted(list_path.name), len(resolved_entries))
+        self._record(list_path, list_data)
         return resolved_entries
 
     def load_dict_data(self, list_file: Path | str, index_col: str) -> dict[str, pd.DataFrame]:
@@ -410,6 +410,7 @@ class Controler:
         rows = [(number, line.split(",")) for number, line in lines]
         check_csv_structure(rows, kind, context)  # stage 2: structure, then values
         check_csv_values(rows, kind, context)
+        self._record(entry.path, data)  # provenance: the bytes that were checked, not a new read
         text = "\n".join(line for _, line in lines) + "\n"
         return pd.read_csv(io.StringIO(text), delimiter=",", index_col=index_col)  # stage 3, as the notebook
         #returning the "standard" pd.read_csv(entry.path, delimiter=",", index_col=index_col) # enabling a vulnerability: TOCTOU atack
