@@ -31,6 +31,8 @@ project uses [Semantic Versioning](https://semver.org/).
   `heatmap_ETDAC` plus formatting); inputs are never modified. `etdac_matrix(..., return_transition=True)`
   also returns the step-1 matrix (formerly the notebook option `atm_to_virtmo`). Other notebook
   helpers kept unchanged.
+- `__init__.py`: imports only the working operations, so `import qm_etdac_calculator` works
+  again; `ConfigMan`, `Scheme` and `cli` return as they are fixed (steps 5c-6).
 - `pyproject.toml`: pytest `golden` marker, `--strict-markers`, `tests` on the import path.
 - `.gitignore`: re-includes `tests/data/phe_tyr/` only.
 - Package moved to `src/qm_etdac_calculator/` (src layout); `pyproject.toml` sets `package-dir`.
