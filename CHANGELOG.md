@@ -25,6 +25,12 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `etdac_operations.py` rewritten: `etdac_matrix` (single sample, formerly
+  `ts_psb_acore_bvirt`) as an explicit loop over shared MO labels, without `try/except`;
+  `Operations` (option `trim_core=True`) with `etdac_batch` (all samples, formerly
+  `heatmap_ETDAC` plus formatting); inputs are never modified. `etdac_matrix(..., return_transition=True)`
+  also returns the step-1 matrix (formerly the notebook option `atm_to_virtmo`). Other notebook
+  helpers kept unchanged.
 - `pyproject.toml`: pytest `golden` marker, `--strict-markers`, `tests` on the import path.
 - `.gitignore`: re-includes `tests/data/phe_tyr/` only.
 - Package moved to `src/qm_etdac_calculator/` (src layout); `pyproject.toml` sets `package-dir`.
