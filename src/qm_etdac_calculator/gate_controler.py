@@ -310,7 +310,9 @@ class Controler:
 
         base = list_path.parent
         resolved_entries: list[ResolvedEntry] = []
-        for entry in parse_list_file(list_path.read_bytes(), list_path.name):
+        for entry in parse_list_file(
+            read_limited(list_path, LIST_FILE_MAX_BYTES, untrusted(list_path.name), "list files"), list_path.name
+        ):
             prefix = f"{untrusted(list_path.name)} line {entry.line}"
             written = Path(entry.path)
             if written.is_absolute():
@@ -370,7 +372,8 @@ class Controler:
     def _read_csv(self, entry: ResolvedEntry, index_col: str, kind: str, list_name: str) -> pd.DataFrame:
         """Read one CSV file in three stages: bytes once, text checked, then parsed by pandas."""
         context = f"{list_name} line {entry.line} ({untrusted(entry.hash)}, {untrusted(entry.path.name)})"
-        lines = read_text_lines(entry.path.read_bytes(), f"{context}: {untrusted(entry.path.name)}")  # stage 1
+        data = read_limited(entry.path, CSV_MAX_BYTES, context, "CSV files")  # stage 1: bytes read once, capped
+        lines = read_text_lines(data, f"{context}: {untrusted(entry.path.name)}")
         rows = [(number, line.split(",")) for number, line in lines]
         check_csv_structure(rows, kind, context)  # stage 2: structure, then values
         check_csv_values(rows, kind, context)

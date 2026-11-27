@@ -483,3 +483,109 @@ def test_abbreviated_decimals_are_parsed_as_full_numbers(tree: dict[str, Path]) 
 def test_real_phe_tyr_data_gives_no_warning(list_name: str, index_col: str, caplog: pytest.LogCaptureFixture) -> None:
     Controler(default_data_root(PHE_TYR)).load_dict_data(PHE_TYR / list_name, index_col)
     assert [r.getMessage() for r in caplog.records if r.levelno >= logging.WARNING] == []
+
+
+# --- size limits (step 5d, commit 3c) -------------------------------------------------
+
+
+def _many(count: int) -> bytes:
+    return "".join(f"f{i:05d},inputs/a.csv\n" for i in range(count)).encode()
+
+
+def test_size_policy_values() -> None:
+    """The limits are policy (ADR 0005); changing them needs an ADR revision."""
+    import qm_etdac_calculator.gate_controler as gate
+
+    assert gate.LIST_RECOMMENDED_ENTRIES == 10_000
+    assert gate.LIST_MAX_ENTRIES == 10_100
+    assert gate.LIST_FILE_MAX_BYTES == 3_000_000
+    assert gate.CSV_MAX_BYTES == 50_000_000
+
+
+def test_list_with_10000_entries_is_accepted_silently(caplog: pytest.LogCaptureFixture) -> None:
+    assert len(_parse(_many(10_000))) == 10_000
+    assert _logged(caplog, logging.WARNING) == []
+
+
+@pytest.mark.parametrize("count", [10_001, 10_100])
+def test_list_just_above_10000_entries_is_accepted_with_a_warning(count: int, caplog: pytest.LogCaptureFixture) -> None:
+    assert len(_parse(_many(count))) == count
+    warnings = _logged(caplog, logging.WARNING)
+    assert len(warnings) == 1
+    assert f"has {count} entries, more than the recommended 10000" in warnings[0]
+    assert "above 10100 entries are rejected" in warnings[0]
+    assert "split the samples into runs of at most 10000 entries" in warnings[0]
+
+
+def test_list_above_10100_entries_is_rejected_as_size_policy() -> None:
+    with pytest.raises(InputError) as excinfo:
+        _parse(_many(10_101))
+    message = str(excinfo.value)
+    assert "has 10101 entries, more than the limit of 10100" in message
+    assert "size policy against resource exhaustion (ADR 0005), not a program error" in message
+    assert "split the samples into runs of at most 10000 entries" in message
+
+
+def test_list_file_above_the_byte_limit_is_rejected_before_parsing(
+    tree: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import qm_etdac_calculator.gate_controler as gate
+
+    monkeypatch.setattr(gate, "LIST_FILE_MAX_BYTES", 17)  # "f10,inputs/a.csv\n" is 17 bytes
+    assert len(_read(tree, "f10,inputs/a.csv")) == 1  # exactly at the limit: accepted
+    monkeypatch.setattr(gate, "parse_list_file", lambda *a: pytest.fail("parsed despite the size limit"))
+    with pytest.raises(InputError) as excinfo:
+        _read(tree, "f10,inputs/a.csv ")  # 18 bytes
+    message = str(excinfo.value)
+    assert message.startswith("'list.log': file is larger than 17 bytes, the size limit for list files")
+    assert "size policy against resource exhaustion (ADR 0005), not a program error" in message
+
+
+def test_csv_above_the_byte_limit_is_rejected_before_checking(
+    tree: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import qm_etdac_calculator.gate_controler as gate
+
+    monkeypatch.setattr(gate, "CSV_MAX_BYTES", len(POP))
+    assert list(_load(tree, POP.encode()).index) == [1, 2]  # exactly at the limit: accepted
+    with pytest.raises(InputError) as excinfo:
+        _load(tree, (POP + "\n").encode())  # one byte more
+    message = str(excinfo.value)
+    assert message.startswith("'list.log' line 1 ('f10', 'a.csv'): file is larger than")
+    assert "the size limit for CSV files" in message
+    assert "not a program error" in message
+
+
+def test_oversized_file_is_never_read_whole(tree: dict[str, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    """The reader asks for at most limit + 1 bytes, so a huge file cannot fill the memory."""
+    import qm_etdac_calculator.gate_controler as gate
+
+    big = tree["logs"] / "big.bin"
+    big.write_bytes(b"x" * 1000)
+    requested: list[int] = []
+    real_open = Path.open
+
+    def spy_open(self: Path, *args: object, **kwargs: object):  # type: ignore[no-untyped-def]
+        handle = real_open(self, *args, **kwargs)  # type: ignore[arg-type]
+        real_read = handle.read
+
+        def read(size: int = -1) -> bytes:
+            requested.append(size)
+            return real_read(size)
+
+        handle.read = read  # type: ignore[method-assign]
+        return handle
+
+    monkeypatch.setattr(Path, "open", spy_open)
+    with pytest.raises(InputError, match="larger than 10 bytes"):
+        gate.read_limited(big, 10, "'big.bin'", "test files")
+    assert requested == [11]
+
+
+def test_size_messages_use_mb_for_real_limits(tmp_path: Path) -> None:
+    import qm_etdac_calculator.gate_controler as gate
+
+    big = tmp_path / "big.csv"
+    big.write_bytes(b"x" * 2_000_001)
+    with pytest.raises(InputError, match="larger than 2 MB, the size limit for CSV files"):
+        gate.read_limited(big, 2_000_000, "'big.csv'", "CSV files")
