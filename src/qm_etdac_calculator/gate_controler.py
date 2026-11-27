@@ -50,6 +50,13 @@ Step 5d, commit 2: CSV files are read in three stages (ADR 0005, "Reading CSV fi
    pandas would otherwise decide silently (duplicate labels renamed, empty cells to NaN,
    quoted cells with commas or line breaks accepted);
 3. only then pandas parses the same text exactly as the notebook did.
+
+Step 5d, commit 3c: size limits against resource exhaustion (ADR 0005). Files are read with
+read_limited(), which asks for at most limit + 1 bytes: an oversized file is rejected without
+ever being read whole, and without a separate size check (stat) that could race with the read.
+List files: at most 3 MB (a real line is about 45 bytes, so 10 000 entries take about 0.5 MB)
+and at most 10 100 entries; 10 001 to 10 100 entries are accepted with a WARNING. CSV files: at
+most 50 MB. The limits are module constants, fixed in 1.2.0 (configurable later, see ADR 0005).
 """
 
 from __future__ import annotations
@@ -67,6 +74,14 @@ from .logging_setup import untrusted
 from .validation import check_csv_structure, check_csv_values, check_hash
 
 logger = logging.getLogger(__name__)
+
+MB = 1_000_000
+LIST_FILE_MAX_BYTES = 3 * MB
+CSV_MAX_BYTES = 50 * MB
+LIST_RECOMMENDED_ENTRIES = 10_000
+LIST_MAX_ENTRIES = 10_100  # 10 001 to 10 100: WARNING; above: InputError
+_SIZE_POLICY = "size policy against resource exhaustion (ADR 0005), not a program error or a damaged file"
+_SPLIT_ADVICE = f"split the samples into runs of at most {LIST_RECOMMENDED_ENTRIES} entries"
 
 _BOM = b"\xef\xbb\xbf"
 _LINE_BREAK = re.compile(r"\r\n|\r|\n")
@@ -146,6 +161,32 @@ def read_text_lines(data: bytes, where: str) -> list[tuple[int, str]]:
             )
         kept.append((number, line))
     return kept
+
+
+def _size(count: int) -> str:
+    return f"{count / MB:g} MB" if count >= MB else f"{count} bytes"
+
+
+def read_limited(path: Path, limit: int, where: str, kind: str) -> bytes:
+    """
+    Read a file's bytes, refusing files larger than `limit` without reading them whole.
+
+    Args:
+        path: the file, already checked by the path policy.
+        limit: the largest accepted size in bytes.
+        where: how to name the file in messages.
+        kind: what the file is, for the message (e.g. "list files").
+    Raises:
+        InputError: the file is larger than `limit`.
+    """
+    with path.open("rb") as file:
+        data = file.read(limit + 1)  # one byte more than allowed is enough to know
+    if len(data) > limit:
+        raise InputError(
+            f"{where}: file is larger than {_size(limit)}, the size limit for {kind}: this is the {_SIZE_POLICY}; "
+            f"check that this is the right file"
+        )
+    return data
 
 
 def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
