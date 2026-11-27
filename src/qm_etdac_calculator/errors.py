@@ -1,5 +1,7 @@
 """Exceptions of the qm_etdac_calculator program."""
 
+FORMAT_HINT = "(see docs/input-format.md)"  # appended to input-format errors
+
 
 class InputError(ValueError):
     """
