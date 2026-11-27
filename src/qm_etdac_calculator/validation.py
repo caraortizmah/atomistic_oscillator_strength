@@ -14,19 +14,34 @@ Step 5d, commit 2: CSV structure (check_csv_structure), on the raw cells before 
 interprets anything: no spaces around cells, exact header, unique non-negative integer
 labels (MO labels in the header, atom / virtual-MO labels in the first column), and every
 row as long as the header.
+
+Step 5d, commit 3a: CSV values (check_csv_values), also on the raw cells. Numbers must match
+an explicit pattern before conversion, because float() is far too permissive: it accepts
+"nan", "inf", "1_000", spaces, and non-ASCII digits (Arabic-Indic, full-width), and "1e999"
+becomes infinity. Accepted: 0, 0.0, 99.6, 8.73323e-06, 1E5; ".5" and "5." are read as 0.5
+and 5.0 with one WARNING per file. Populations and oscillator strengths must be >= 0
+(-0.0 is zero and accepted). The text columns sym / lvl hold 1 to 8 ASCII letters.
 """
 
 from __future__ import annotations
 
+import logging
+import math
 import re
 from collections.abc import Iterable, Mapping
 
 from .errors import FORMAT_HINT, InputError
 from .logging_setup import untrusted
 
+logger = logging.getLogger(__name__)
+
 HASH_PATTERN = re.compile(r"[A-Za-z0-9]{1,64}")
 LABEL_PATTERN = re.compile(r"[0-9]+")  # non-negative integer, ASCII digits only
 HEADER_PREFIX = {"population": ["num-1", "sym", "lvl"], "oscillator": ["virt\\core"]}
+NUMBER_PATTERN = re.compile(r"-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
+ABBREVIATED = re.compile(r"^-?\.|\.(?:[eE]|$)")  # ".5" (no leading zero) or "5." (no trailing zero)
+TEXT_PATTERN = re.compile(r"[A-Za-z]{1,8}")
+QUANTITY = {"population": "population", "oscillator": "oscillator strength"}
 MAX_REPORTED = 10  # problems listed in one message; the rest are counted
 
 
@@ -132,3 +147,55 @@ def check_csv_structure(rows: list[tuple[int, list[str]]], kind: str, where: str
                 f"(first on CSV line {first_seen[label]}) {FORMAT_HINT}"
             )
         first_seen[label] = number
+
+
+def check_csv_values(rows: list[tuple[int, list[str]]], kind: str, where: str) -> None:
+    """
+    Check the values of a CSV file whose structure already passed check_csv_structure (ADR 0005).
+
+    Args:
+        rows: (line number in the file, cells) for every non-blank line; rows[0] is the header.
+        kind: "population" or "oscillator".
+        where: how to name the sample and file in messages.
+    Raises:
+        InputError: the first value that is not a plain finite number, is negative, or a
+            sym / lvl cell that is not 1 to 8 ASCII letters.
+    """
+    header = rows[0][1]
+    first_number = len(HEADER_PREFIX[kind])
+    abbreviated: list[tuple[int, str, str]] = []
+    for number, cells in rows[1:]:
+        if kind == "population":
+            for column, cell in (("sym", cells[1]), ("lvl", cells[2])):
+                if TEXT_PATTERN.fullmatch(cell) is None:
+                    raise InputError(
+                        f"{where}: CSV line {number}, column {column}: invalid text {untrusted(cell)}: "
+                        f"expected 1 to 8 letters (A-Z, a-z), e.g. C, atom, s, lvlMO {FORMAT_HINT}"
+                    )
+        for label, cell in zip(header[first_number:], cells[first_number:], strict=True):
+            position = f"CSV line {number}, column {label}"
+            if NUMBER_PATTERN.fullmatch(cell) is None:
+                raise InputError(
+                    f"{where}: {position}: {untrusted(cell)} is not a number: expected digits such as 0.0, "
+                    f"99.6 or 8.73323e-06 (no nan, inf, text, formulas or spaces) {FORMAT_HINT}"
+                )
+            value = float(cell)  # safe: the pattern admits only plain decimal numbers
+            if not math.isfinite(value):
+                raise InputError(f"{where}: {position}: {untrusted(cell)} is not a finite number {FORMAT_HINT}")
+            if value < 0:
+                raise InputError(f"{where}: {position}: negative {QUANTITY[kind]} {untrusted(cell)} {FORMAT_HINT}")
+            if ABBREVIATED.search(cell):
+                abbreviated.append((number, label, cell))
+    if abbreviated:
+        number, label, cell = abbreviated[0]
+        logger.warning(
+            "%s: %d value(s) written without a leading or trailing zero were read as full numbers "
+            "(first: CSV line %d, column %s: %s read as %s); check the file and write 0.5 and 5.0 "
+            "instead of .5 and 5. to avoid the assumption",
+            where,
+            len(abbreviated),
+            number,
+            label,
+            untrusted(cell),
+            float(cell),
+        )
