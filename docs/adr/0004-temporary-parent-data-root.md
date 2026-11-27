@@ -30,3 +30,5 @@ folder** (exactly one level up). The rule itself stays strict:
 - `popmatrices/Bigscale/*.log` -> `popmatrices/newFY_1-26/*.csv` is accepted as is.
 - When `newFY_1-26` is renamed, a new ADR returns the default to the logs folder and
   exposes `--data-root`.
+- Implementation: `gate_controler.default_data_root()` (step 5c), one function so the future change is one line; tested in `tests/test_controler.py`.
+- Planned next (priority 1 for the next release, see `docs/project-state.md`): explicitly authorized data roots for HPC / cluster use, with no lateral movement between folders.

@@ -1,6 +1,6 @@
 # ADR 0005: Input validation: allowlist, fail closed
 
-- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added)
+- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below)
 - Date: 2026-11-26
 
 ## Context
@@ -59,6 +59,22 @@ Spreadsheet programs execute a cell as a formula when it starts with `=`, `+`, `
 - **Outputs:** the program writes `.h5` files only. If a CSV export is ever added, numbers must stay numeric and every text cell starting with one of the characters above must be neutralised (prefixed with `'`), following the OWASP guidance on CSV
   injection.
 
+### List-file format details (decided in step 5c)
+
+The reader is strict about structure and tolerant only about harmless editing leftovers, which it always reports. The user-facing description is `docs/input-format.md`; every format error points to it.
+
+| Found | Result |
+|-------|--------|
+| UTF-8 BOM at the start | removed; INFO |
+| one line-ending style: `\r\n` (Windows) or `\r` (classic Mac) | accepted; INFO |
+| `\n` mixed with `\r\n` | accepted; WARNING (the `\r` is a removable leftover) |
+| lone `\r` in a file that also uses `\n` or `\r\n` | error: not interpreted, never edited |
+| blank or whitespace-only line, anywhere | ignored; WARNING naming file and line (samples are paired by hash, not by line position) |
+| tab, control or invisible character (zero-width, line separators, bidirectional overrides: "Trojan Source", CVE-2021-42574) | error |
+| leading or trailing spaces in a field | error |
+| spaces inside a path | accepted; WARNING (works in Python, no shell involved, but may break shell commands or tools that do not quote paths) |
+| duplicate hash within one list file | error, checked for the whole list before any CSV is opened (implemented in step 5c, because a dict keyed by hash would silently keep only the last one) |
+
 ## Required tests
 
 Every rule has a negative test (the input must be rejected or warned about) paired with a positive test just inside the boundary (the input must be accepted silently). The pairs prove each rule is exact: a rule that rejects everything would pass the negative tests alone. Tests are written failing first, one rule at a time (step 5).
@@ -91,7 +107,7 @@ Every rule has a negative test (the input must be rejected or warned about) pair
 
 ## Consequences
 
-- Implemented and tested in step 5, one rule at a time (failing test first).
+- Implemented and tested in step 5, one rule at a time (failing test first). Step 5c: list-line format, the details above, duplicates within a list, and paths (ADR 0003/0004). Step 5d: hash pattern, the same hashes in all three files, CSV structure and values, size limits, warnings.
 - Error messages name the hash and the file, and show untrusted values with `repr()`, truncated.
 - The rules describe the current parser output. A new parser format needs a new ADR.
 - Future: the size limits become configuration (for example in the JSON run config), because data sets above 10 000 entries are realistic. The fixed values become the defaults, and a raised limit must be set explicitly by the user and reported in the log. This needs its own ADR when implemented.

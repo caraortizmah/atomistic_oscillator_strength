@@ -43,3 +43,4 @@ and its contents are user data and are never touched.
 - The existing Bigscale list files (`../newFY_1-26/...`) need the data root widened
   until the folder is renamed.
 - More checks, all covered by tests.
+- Implementation: the reading part is implemented in step 5c (`gate_controler.Controler`, `read_list_file`, `load_dict_data`; tests in `tests/test_controler.py`, "Path policy" section). The writing part (output folder, `_oldversionN`, atomic write) follows in step 5e.
