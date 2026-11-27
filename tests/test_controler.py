@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from qm_etdac_calculator.errors import InputError
@@ -302,3 +303,57 @@ def test_missing_list_file_is_rejected(tree: dict[str, Path]) -> None:
 def test_missing_data_root_is_rejected(tree: dict[str, Path]) -> None:
     with pytest.raises(InputError, match="data root not found"):
         Controler(tree["tmp"] / "nowhere")
+
+
+# =====================================================================================
+# Loading the CSV files (step 5c, bullet 3)
+# =====================================================================================
+
+PHE_TYR = Path(__file__).parent / "data" / "phe_tyr"
+PHE_TYR_LISTS = {
+    "resA_MOcore_list.log": "num-1",
+    "resB_MOvirt_list.log": "num-1",
+    "corevirt_fosce_AB_list.log": "virt\\core",
+}
+
+
+@pytest.mark.parametrize(("list_name", "index_col"), PHE_TYR_LISTS.items())
+def test_load_dict_data_reproduces_the_notebook_loader(
+    list_name: str, index_col: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """All 52 Phe-Tyr samples: same hashes, same order, identical DataFrames."""
+    import notebook_reference as nb
+
+    controler = Controler(default_data_root(PHE_TYR))
+    loaded = controler.load_dict_data(PHE_TYR / list_name, index_col)
+
+    monkeypatch.chdir(PHE_TYR)  # the notebook loader resolves paths against the working folder
+    expected = nb.load_dict_data(list_name, index_col)
+
+    assert list(loaded) == list(expected) == [f"f{i}" for i in range(10, 62)]
+    for key in expected:
+        pd.testing.assert_frame_equal(loaded[key], expected[key], check_exact=True, obj=key)
+
+
+def test_load_dict_data_reports_what_it_loaded(caplog: pytest.LogCaptureFixture) -> None:
+    Controler(default_data_root(PHE_TYR)).load_dict_data(PHE_TYR / "resA_MOcore_list.log", "num-1")
+    assert "loaded 52 entries from 'resA_MOcore_list.log'" in _logged(caplog, logging.INFO)
+
+
+def test_load_dict_data_applies_the_path_policy(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="outside the data root"):
+        Controler(tree["root"]).load_dict_data(_list(tree["logs"], "f10,../../outside/c.csv"), "num-1")
+
+
+def test_duplicate_hash_is_rejected_instead_of_overwritten(tree: dict[str, Path]) -> None:
+    """A dict keyed by hash would silently keep only the last duplicate."""
+    list_file = _list(tree["logs"], "f10,inputs/a.csv", "f10,../data/b.csv")
+    with pytest.raises(InputError, match="line 2: duplicate hash 'f10' \\(first on line 1\\)"):
+        Controler(tree["root"]).load_dict_data(list_file, "num-1")
+
+
+def test_distinct_hashes_pointing_to_the_same_file_are_accepted(tree: dict[str, Path]) -> None:
+    """Boundary: only hashes must be unique; two samples may share a file."""
+    (tree["logs"] / "inputs" / "a.csv").write_text("num-1,sym,lvl,7\n1,C,s,60.0\n")
+    list_file = _list(tree["logs"], "f10,inputs/a.csv", "f11,inputs/a.csv")
+    assert list(Controler(tree["root"]).load_dict_data(list_file, "num-1")) == ["f10", "f11"]
