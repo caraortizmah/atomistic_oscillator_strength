@@ -52,6 +52,7 @@ project uses [Semantic Versioning](https://semver.org/).
   Reproduces the notebook loader exactly on all 52 Phe-Tyr samples. `Controler`,
   `default_data_root` and `InputError` exported from the package.
 - ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
+- `docs/input-format.md` and ADR 0005: the 2.5 rounding tolerance covers systems of up to 47 atoms with one decimal; larger systems need more precise values (user's responsibility).
 
 ### Changed
 
