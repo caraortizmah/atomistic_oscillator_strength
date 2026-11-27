@@ -51,6 +51,7 @@ project uses [Semantic Versioning](https://semver.org/).
   never silently overwritten) before opening any CSV; logs `loaded N entries` (INFO).
   Reproduces the notebook loader exactly on all 52 Phe-Tyr samples. `Controler`,
   `default_data_root` and `InputError` exported from the package.
+- ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
 
 ### Changed
 
