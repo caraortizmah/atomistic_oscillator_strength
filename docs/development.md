@@ -15,6 +15,8 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 | `logging_setup.py` | log configuration for the program entry point; `untrusted()` for values in messages | verbosity, log file path | configured loggers |
 | `errors.py` | `InputError` (bad input files), `OutputError` (unusable output location) | | |
 
+Terms: the third input is called **oscillator strengths** in the code, in the CSV files (`corevirt_fosce`, f = oscillator strength) and in ORCA. The user documentation and the program's messages to users call it **core-electron transition intensities**.
+
 Not working yet (notebook leftovers, rebuilt in the next steps): `etdac_calculator.py` (`Scheme`, the orchestration, step 5f), `config.py` (`ConfigMan`, run settings), `cli.py` (the `qm-etdac` command, step 6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
 
 ### What each part receives and gives back
