@@ -90,7 +90,8 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
   no lateral movement between folders. Needs its own ADR (supersedes the data-root default
   of ADR 0004 together with the `newFY_1-26` rename).
 - Retire the notebook reference (`tests/notebook_reference.py`, `tests/test_notebook_equivalence.py`) once a validated release becomes the reference and the method changes; new ADR superseding ADR 0002 (criteria in `docs/development.md`).
-- Size limits (10 000 list entries, 50 MB per CSV) configurable; fixed values become defaults (ADR 0005).
+- Size limits (10 000 list entries, 50 MB per CSV) configurable; fixed values become defaults (ADR 0005). A warning zone for CSV sizes, like the one for list entries (10 001 to 10 100), can be added at the same time.
+- Hashes unique across all list files of one system (replaces the temporary hash policy of 1.2.0, ADR 0005). A large system can be split into many list files (e.g. 1 000 000 samples in 100 files); a hash must then be unique across all of them, not only within one list file, and hashes will be longer than the 9 characters recommended now. Needs a revision of ADR 0005 together with the design of multi-file runs.
 - Better sample IDs than `f<number>` (e.g. derived from the geometry or a UUID).
 - CI must handle one lock file per Python version (the lock is compiled for one interpreter); decide at step 9.
 - pandas lower bound (>= 2.1) is untested; the golden check passed on pandas 3.0. Test minimum versions in CI at step 9.
