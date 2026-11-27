@@ -60,10 +60,19 @@ ever being read whole, and without a separate size check (stat) that could race 
 List files: at most 3 MB (a real line is about 45 bytes, so 10 000 entries take about 0.5 MB)
 and at most 10 100 entries; 10 001 to 10 100 entries are accepted with a WARNING. CSV files: at
 most 50 MB. The limits are module constants, fixed in 1.2.0 (configurable later, see ADR 0005).
+
+Step 5e, commit 3: provenance (ADR 0006). The Controler records every file whose content
+passed the checks, as InputRecord(path relative to the data root, SHA-256), in read order
+(Controler.inputs_read). The hash is computed from the same bytes that were checked and
+parsed, never by reading the file again: a file swapped after the read cannot make the record
+describe something that was not used (TOCTOU). Paths are relative, so no home folder or
+machine layout leaks into a shared result; a symlinked input is recorded under its real path.
+A file read twice with the same content is recorded once; changed content is recorded again.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import logging
 import re
@@ -268,6 +277,13 @@ def default_data_root(logs_path: Path | str) -> Path:
     logs folder itself and exposes --data-root. Kept in one function so the change is one line.
     """
     return Path(logs_path).resolve(strict=True).parent
+
+
+class InputRecord(NamedTuple):
+    """One input file as used: path relative to the data root (POSIX style) and SHA-256 of its bytes."""
+
+    path: str
+    sha256: str
 
 
 class Controler:
