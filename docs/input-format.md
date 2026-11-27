@@ -68,6 +68,9 @@ Structure rules (checked before any number is interpreted; see ADR 0005 for the 
 - Header exactly as above; at least one MO column and one data row.
 - MO labels (header) and row labels (first column): non-negative integers, unique within the file.
 - Every row has as many fields as the header.
+- Numbers: plain decimal numbers such as `0`, `0.0`, `99.6`, `8.73323e-06` or `1E5`. Not allowed: `nan`, `inf`, empty cells, text, spaces, `+` or `=` at the start (spreadsheet formulas), `1_000`, non-ASCII digits. `.5` and `5.` are read as 0.5 and 5.0 with a warning: write the zero.
+- Populations and oscillator strengths are never negative (`-0.0` is accepted as zero).
+- `sym` and `lvl`: 1 to 8 letters (A-Z, a-z), e.g. `C`, `atom`, `s`, `lvlMO`.
 
 Common mistakes in CSV files (rejected with an error naming the sample and file):
 
@@ -79,6 +82,9 @@ Common mistakes in CSV files (rejected with an error naming the sample and file)
 | `num-1,sym,lvl,7,7` | duplicate MO label |
 | `atom,sym,lvl,7` | wrong header |
 | a row with one field more or less than the header | ragged row |
+| `1,C,s,nan` or an empty cell | not a number (would spread as NaN through the results) |
+| `1,C,s,=SUM(A1)` | formula, not a number |
+| `1,C,s,-0.1` | negative population |
 
 Their content is validated as described in ADR 0005 (finite numbers, populations ≥ 0,
 letters-only `sym`/`lvl`, and the warnings for population sums above 100 %).

@@ -1,4 +1,4 @@
-"""Input validation (step 5d, ADR 0005): hashes (commit 1) and CSV structure (commit 2).
+"""Input validation (step 5d, ADR 0005): hashes (commit 1), CSV structure (commit 2), CSV values (commit 3).
 
 Each rejected case is paired with an accepted one just inside the boundary. Non-ASCII test
 values are written as escape sequences, so this file stays plain ASCII.

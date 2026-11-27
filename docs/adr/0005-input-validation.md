@@ -1,6 +1,6 @@
 # ADR 0005: Input validation: allowlist, fail closed
 
-- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below)
+- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below; number format, `-0.0`, abbreviated decimals)
 - Date: 2026-11-26
 
 ## Context
@@ -21,8 +21,8 @@ Errors:
 | Population CSV header | exactly `num-1,sym,lvl,<MO labels…>` |
 | Oscillator-strength CSV header | exactly `virt\core,<core MO labels…>` |
 | Atom and MO labels | integers, unique within the file |
-| Numeric cells | parsed strictly as numbers; finite (no NaN, no ±inf); any text in a number column is an error |
-| Populations | ≥ 0 (a negative population is impossible in this field) |
+| Numeric cells | must match the pattern `-?(digits[.digits] or .digits)[e/E[+-]digits]` before conversion (`float()` alone would accept `nan`, `inf`, `1_000`, spaces and non-ASCII digits); finite after conversion (`1e999` overflows to infinity and is rejected); any text in a number column is an error |
+| Populations | ≥ 0 (a negative population is impossible in this field); `-0.0` is zero and accepted |
 | Oscillator strengths | ≥ 0 |
 | `sym`, `lvl` text columns | match `^[A-Za-z]{1,8}$` (letters only, e.g. `C`, `atom`, `s`, `lvlMO`) |
 | Size limits | at most 10 000 entries per list file; at most 50 MB per CSV file (against resource exhaustion). Fixed (mandatory) in 1.2.0; see Consequences for making them configurable |
@@ -32,6 +32,7 @@ Warnings (the run continues, the warning is logged, the data's veracity should b
 | Item | Rule |
 |------|------|
 | Single population value | > 100 % |
+| Numbers written `.5` or `5.` | read as 0.5 and 5.0; one WARNING per file with the count and the first occurrence, asking to write the zero |
 | Sum of one MO's populations over the atoms, 100 % < sum ≤ 102.5 % | "at the edge": consistent with rounding, but reported so the user notices |
 | Sum of one MO's populations over the atoms, sum > 102.5 % | "beyond rounding tolerance": check the veracity of the data |
 

@@ -61,6 +61,10 @@ project uses [Semantic Versioning](https://semver.org/).
   no spaces around cells, no quotes, exact header, unique non-negative integer labels, rows as long
   as the header), then parsed exactly as the notebook did. Broken CSV files are an `InputError`
   naming list file, line, hash and CSV file instead of raw pandas errors.
+- `validation.check_csv_values` (ADR 0005, stage 2 of the CSV reader): numbers must match an explicit
+  pattern before conversion (`float()` accepts `nan`, `inf`, `1_000`, non-ASCII digits) and be finite;
+  populations and oscillator strengths >= 0 (`-0.0` accepted); `sym`/`lvl` 1 to 8 ASCII letters;
+  `.5` / `5.` read as 0.5 / 5.0 with one warning per file. `nan` in a CSV no longer spreads silently.
 - ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
 - `docs/input-format.md` and ADR 0005: the 2.5 rounding tolerance covers systems of up to 47 atoms with one decimal; larger systems need more precise values (user's responsibility).
 
