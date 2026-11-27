@@ -105,7 +105,8 @@ def test_trailing_blank_lines_are_ignored_with_a_warning(caplog: pytest.LogCaptu
 def test_spaces_inside_a_path_are_accepted_with_a_warning(caplog: pytest.LogCaptureFixture) -> None:
     assert _parse(b"f30,file of molecule 30.csv\n")[0].path == "file of molecule 30.csv"
     assert _logged(caplog, logging.WARNING) == [
-        "'resA_MOcore_list.log' line 1: path contains spaces (works, but avoid it): 'file of molecule 30.csv'"
+        "'resA_MOcore_list.log' line 1: path contains spaces: works in this program, but may break "
+        "shell commands or other tools that do not quote paths; rename the file: 'file of molecule 30.csv'"
     ]
 
 
@@ -153,6 +154,16 @@ def test_control_and_invisible_characters_are_rejected(hostile: bytes) -> None:
 def test_file_without_entries_is_rejected() -> None:
     with pytest.raises(InputError, match="no entries"):
         _parse(b"\n  \n")
+
+
+@pytest.mark.parametrize(
+    "data",
+    [b"f10\n", b"f10,a.csv\x1b\n", b" f10,a.csv\n", b"f10,\n", b"f10,a\rb.csv\n", b"f10,caf\xe9.csv\n"],
+)
+def test_format_errors_point_to_the_format_documentation(data: bytes) -> None:
+    with pytest.raises(InputError) as excinfo:
+        _parse(data)
+    assert str(excinfo.value).endswith("(see docs/input-format.md)")
 
 
 def test_error_messages_stay_on_one_line_and_show_values_safely() -> None:
