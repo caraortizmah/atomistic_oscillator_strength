@@ -61,6 +61,25 @@ The CSV files are read as produced by xas-qmol-parser (comma-separated):
 - population files: header `num-1,sym,lvl,<MO labels…>`; one row per atom;
 - oscillator-strength files: header `virt\core,<core MO labels…>`; one row per virtual MO.
 
+Structure rules (checked before any number is interpreted; see ADR 0005 for the reasons):
+
+- UTF-8, the same line rules as list files (BOM and line endings reported, blank lines ignored with a warning, no control or invisible characters).
+- Comma-separated, **no quotes, no spaces around cells**: `1,C,s,60.0`, not `1, C, s, 60.0`.
+- Header exactly as above; at least one MO column and one data row.
+- MO labels (header) and row labels (first column): non-negative integers, unique within the file.
+- Every row has as many fields as the header.
+
+Common mistakes in CSV files (rejected with an error naming the sample and file):
+
+| Found | Problem |
+|-------|---------|
+| `1, C, s, 60.0` | spaces around cells |
+| `num-1;sym;lvl;7` | semicolons instead of commas (e.g. exported by a spreadsheet in some languages) |
+| `"num-1",sym,lvl,7` | quotes |
+| `num-1,sym,lvl,7,7` | duplicate MO label |
+| `atom,sym,lvl,7` | wrong header |
+| a row with one field more or less than the header | ragged row |
+
 Their content is validated as described in ADR 0005 (finite numbers, populations ≥ 0,
 letters-only `sym`/`lvl`, and the warnings for population sums above 100 %).
 

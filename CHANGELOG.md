@@ -55,6 +55,12 @@ project uses [Semantic Versioning](https://semver.org/).
   pattern with `fullmatch`; `isalnum()`/`\w` would accept non-ASCII) applied in the first pass of
   `load_dict_data`; `check_same_hashes` (every sample in all three inputs, any order).
   Tests in `tests/test_validation.py`.
+- CSV files are read in three stages (ADR 0005): bytes read once (a test simulates a file swapped
+  between check and parse), raw text checked before pandas interprets anything
+  (`gate_controler.read_text_lines`, shared with list files, and `validation.check_csv_structure`:
+  no spaces around cells, no quotes, exact header, unique non-negative integer labels, rows as long
+  as the header), then parsed exactly as the notebook did. Broken CSV files are an `InputError`
+  naming list file, line, hash and CSV file instead of raw pandas errors.
 - ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
 - `docs/input-format.md` and ADR 0005: the 2.5 rounding tolerance covers systems of up to 47 atoms with one decimal; larger systems need more precise values (user's responsibility).
 

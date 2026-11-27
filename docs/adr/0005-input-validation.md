@@ -1,6 +1,6 @@
 # ADR 0005: Input validation: allowlist, fail closed
 
-- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below)
+- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below)
 - Date: 2026-11-26
 
 ## Context
@@ -76,6 +76,16 @@ The reader is strict about structure and tolerant only about harmless editing le
 | leading or trailing spaces in a field | error |
 | spaces inside a path | accepted; WARNING (works in Python, no shell involved, but may break shell commands or tools that do not quote paths) |
 | duplicate hash within one list file | error, checked for the whole list before any CSV is opened (implemented in step 5c, because a dict keyed by hash would silently keep only the last one) |
+
+### Reading CSV files: read once, check the raw text, then parse (decided in step 5d)
+
+Handing a file straight to pandas is easier, but pandas then takes decisions silently: an empty cell or the text `nan` becomes NaN, a duplicate column label `7` is renamed `7.1`, a quoted cell may contain commas or even line breaks, and spaces can change what a label is. On one file that is one possibly wrong number; on thousands of files it is an unknown number of wrong results that nobody can audit, because nothing recorded what was decided. These defaults can also change between pandas versions (pandas 3 changed how text columns are typed), so correctness would depend on the library version rather than on our rules. The program therefore reads every CSV file in three stages:
+
+1. **Read the bytes once.** Everything below works on that single copy in memory, so the file cannot be swapped between checking and parsing (time-of-check / time-of-use). A test simulates exactly this swap.
+2. **Check the raw text** before pandas interprets anything: the same line rules as list files (UTF-8, BOM and line endings reported, blank lines ignored with a WARNING, control and invisible characters rejected), then a plain split on commas (no quoting: the parser output never uses quotes, so a quote character simply fails the checks), then the structure: no spaces around cells (error with an explanation: with spaces, `1` and ` 1` would be different labels and errors could hide), exact header (`num-1,sym,lvl,<MO labels>` or `virt\core,<MO labels>`), MO labels and row labels unique non-negative integers (ASCII digits only), every row as long as the header, at least one MO column and one data row.
+3. **Parse with pandas** exactly as the notebook did, from the checked text. Results are identical to the notebook loader on the Phe–Tyr data.
+
+Every problem is an `InputError` naming the list file, line, hash and CSV file. The values (finite numbers, no text in number columns, signs, `sym`/`lvl`, the warnings, size limits) are checked in the same stage 2 (step 5d, commit 3).
 
 ## Required tests
 
