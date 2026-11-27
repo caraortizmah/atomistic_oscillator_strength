@@ -39,6 +39,11 @@ project uses [Semantic Versioning](https://semver.org/).
   characters rejected (including bidirectional overrides, "Trojan Source"); exactly two
   non-empty fields without leading/trailing spaces; spaces inside paths give a WARNING.
   Tests in `tests/test_controler.py`.
+- `gate_controler.Controler` and `default_data_root` (path policy, ADR 0003/0004): reads
+  only inside its data root (default: parent of the logs folder); list file must be inside;
+  absolute paths rejected; relative paths resolve against the list file's folder; symlinks
+  followed, so links escaping the root are rejected; whole-component check (`is_relative_to`,
+  no string prefixes); target must be an existing regular file.
 
 ### Changed
 
