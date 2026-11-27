@@ -292,6 +292,8 @@ class Controler:
 
     Attributes:
         data_root: absolute, resolved folder; nothing outside it is ever read.
+        inputs_read: every file whose content passed the checks, as InputRecord, in read
+            order (ADR 0006).
     """
 
     def __init__(self, data_root: Path | str) -> None:
@@ -302,6 +304,17 @@ class Controler:
         if not root.is_dir():
             raise InputError(f"data root is not a folder: {untrusted(str(root))}")
         self.data_root = root
+        self._inputs: list[InputRecord] = []
+
+    @property
+    def inputs_read(self) -> tuple[InputRecord, ...]:
+        return tuple(self._inputs)
+
+    def _record(self, path: Path, data: bytes) -> None:
+        """Remember a file that was used, hashing the bytes that were checked (never re-read)."""
+        record = InputRecord(path.relative_to(self.data_root).as_posix(), hashlib.sha256(data).hexdigest())
+        if record not in self._inputs:
+            self._inputs.append(record)
 
     def _is_inside(self, path: Path) -> bool:
         return path.is_relative_to(self.data_root)  # whole components, not string prefixes
