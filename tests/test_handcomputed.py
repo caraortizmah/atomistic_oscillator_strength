@@ -10,8 +10,11 @@ a = core atom, b = virtual atom. Populations are in percent; only step 1 is divi
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
+import pytest
 from conftest import OSC_INDEX, POP_INDEX, frame_from_csv
 
 from qm_etdac_calculator.etdac_operations import Operations, etdac_matrix, nonzero_mo_matrix, remove_noncontrb
@@ -152,3 +155,35 @@ def test_etdac_matrix_can_return_the_transition_matrix() -> None:
     assert list(transition.columns) == ["92"]
     np.testing.assert_allclose(transition.to_numpy(dtype=float), [[0.30], [0.20]], rtol=1e-12)
     np.testing.assert_allclose(etdac.to_numpy(dtype=float), [[0.09, 0.21], [0.06, 0.14]], rtol=1e-12)
+
+
+# --- logging (step 5b): what the calculation reports ----------------------------------
+
+
+def _messages(caplog: pytest.LogCaptureFixture, level: int) -> list[str]:
+    return [r.getMessage() for r in caplog.records if r.levelno == level and r.name.startswith("qm_etdac_calculator")]
+
+
+def test_trimming_is_reported_at_debug(caplog: pytest.LogCaptureFixture) -> None:
+    """Case B: core MO 8 is all zero and removed; the report names the sample and the MO."""
+    caplog.set_level(logging.DEBUG, logger="qm_etdac_calculator")
+    _batch(**CASE_B)
+    assert _messages(caplog, logging.DEBUG) == ["'s1': removed non-contributing core MOs ['8']"]
+
+
+def test_nothing_is_reported_when_nothing_is_trimmed(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="qm_etdac_calculator")
+    _batch(**CASE_A)
+    assert _messages(caplog, logging.DEBUG) == []
+
+
+def test_no_trimming_report_when_trimming_is_off(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="qm_etdac_calculator")
+    _batch(**CASE_B, trim_core=False)
+    assert _messages(caplog, logging.DEBUG) == []
+
+
+def test_summary_is_reported_at_info(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="qm_etdac_calculator")
+    _batch(**CASE_A)
+    assert _messages(caplog, logging.INFO) == ["ETDAC calculated for 1 sample(s)"]
