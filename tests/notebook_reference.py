@@ -6,10 +6,13 @@ The function bodies below are copied verbatim from the notebook, including their
 style and bare excepts, so the tests compare the package against exactly the code
 that produced the published results (ADR 0002). Only `format_heatmaps` wraps the two
 formatting loops that follow `heatmap_ETDAC` in the notebook into a function.
+`save_ETDAC_matrix` was added in step 5e (same notebook, same commit, copied verbatim) as
+the reference for the .h5 layout.
 
 Not collected by pytest (file name does not start with test_).
 """
 
+import h5py
 import numpy as np
 import pandas as pd
 
@@ -168,3 +171,30 @@ def format_heatmaps(heatmap_raw):
             heatmap_raw[key].apply(pd.to_numeric).sort_index(ascending=True)
         })
     return heatmap
+
+
+# --- notebook function: save_ETDAC_matrix
+def save_ETDAC_matrix(data_dict, data_set_name="data_etdac_matrix.h5"):
+    """
+    Get the node/edge features for each molecule and save
+    all the results in H5PY format.
+    Args:
+    data_dict (dict) contains a hash (key) and 
+     the ETDAC matrix (value) of each molecule.
+    data_set_name (str, optional) is the name of the H5PY file to be
+     created. By default that file is called "data_etdac_matrix.h5".
+    """
+    
+    with h5py.File(data_set_name, 'w') as f:
+
+        # Get node/edge features for the list of molecules
+        for hash in data_dict.keys():
+#df.to_hdf('data.h5', key='df', mode='w', format='table')
+            qm_group = f.create_group(f"sample_{hash}")
+            qm_group.create_dataset("ETDAC_matrix", 
+                                    data=data_dict[hash].to_records(index=True),  # Preserves index+columns
+                                    compression="gzip")
+            
+            qm_group.attrs["hash"] = hash
+            qm_group.attrs["column_name"] = data_dict[hash].columns.name # Save column name
+            qm_group.attrs["index_name"] = data_dict[hash].index.name  # Save row name
