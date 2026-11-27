@@ -215,7 +215,8 @@ def test_negative_population_is_rejected() -> None:
 
 
 def test_negative_oscillator_strength_is_rejected() -> None:
-    with pytest.raises(InputError, match="CSV line 2, column 7: negative oscillator strength '-1e-9'"):
+    """The message uses the users' term (docs/input-format.md); in the code it is the oscillator strength."""
+    with pytest.raises(InputError, match="CSV line 2, column 7: negative core-electron transition intensity '-1e-9'"):
         check_csv_values(_oscillator("-1e-9"), "oscillator", WHERE)
 
 

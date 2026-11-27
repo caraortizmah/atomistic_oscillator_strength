@@ -59,7 +59,7 @@ HEADER_PREFIX = {"population": ["num-1", "sym", "lvl"], "oscillator": ["virt\\co
 NUMBER_PATTERN = re.compile(r"-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 ABBREVIATED = re.compile(r"^-?\.|\.(?:[eE]|$)")  # ".5" (no leading zero) or "5." (no trailing zero)
 TEXT_PATTERN = re.compile(r"[A-Za-z]{1,8}")
-QUANTITY = {"population": "population", "oscillator": "oscillator strength"}
+QUANTITY = {"population": "population", "oscillator": "core-electron transition intensity"}  # users' terms (docs/input-format.md)
 MAX_REPORTED = 10  # problems listed in one message; the rest are counted
 POPULATION_TOTAL = 100.0  # percent: one MO over all atoms
 ROUNDING_EDGE = 102.5  # percent: 47 atoms x 0.05 rounding = 102.35, plus margin
