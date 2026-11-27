@@ -307,3 +307,12 @@ class Controler:
         data = {entry.hash: self._read_csv(entry, index_col, kind, name) for entry in entries}
         logger.info("loaded %d entries from %s", len(data), name)
         return data
+
+
+    def _read_csv(self, entry: ResolvedEntry, index_col: str, kind: str, list_name: str) -> pd.DataFrame:
+        """Read one CSV file in three stages: bytes once, text checked, then parsed by pandas."""
+        context = f"{list_name} line {entry.line} ({untrusted(entry.hash)}, {untrusted(entry.path.name)})"
+        lines = read_text_lines(entry.path.read_bytes(), f"{context}: {untrusted(entry.path.name)}")  # stage 1
+        check_csv_structure([(number, line.split(",")) for number, line in lines], kind, context)  # stage 2
+        text = "\n".join(line for _, line in lines) + "\n"
+        return pd.read_csv(io.StringIO(text), delimiter=",", index_col=index_col)  # stage 3, as the notebook
