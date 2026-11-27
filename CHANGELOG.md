@@ -46,6 +46,11 @@ project uses [Semantic Versioning](https://semver.org/).
   no string prefixes); target must be an existing regular file.
 - `docs/input-format.md`: the simple, robust input format (list files and CSV headers),
   what is tolerated, and common mistakes. Every format error ends with a pointer to it.
+- `Controler.load_dict_data` (formerly the notebook's `load_dict_data`): reads every CSV of a
+  list file through the path policy; checks the whole list (duplicate hashes are an error,
+  never silently overwritten) before opening any CSV; logs `loaded N entries` (INFO).
+  Reproduces the notebook loader exactly on all 52 Phe-Tyr samples. `Controler`,
+  `default_data_root` and `InputError` exported from the package.
 
 ### Changed
 
