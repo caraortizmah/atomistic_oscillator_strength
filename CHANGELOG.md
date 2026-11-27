@@ -31,6 +31,14 @@ project uses [Semantic Versioning](https://semver.org/).
   (DEBUG, only when any) and a summary line (INFO); replaces the old `report_trimmed`.
 - `docs/development.md`: "Logging and debugging" section (levels, flags, `caplog`, `breakpoint()`,
   `pytest --pdb`, VS Code debug configuration).
+- `errors.py`: `InputError`, raised on purpose for invalid input files (shared by the
+  readers and the validation).
+- `gate_controler.parse_list_file`: strict reading of list files (`hash,path` per line):
+  UTF-8 only; BOM removed (INFO); `\r\n` / `\r` line endings accepted (INFO), mixed ones
+  accepted with a WARNING; blank lines ignored with a WARNING; control and invisible
+  characters rejected (including bidirectional overrides, "Trojan Source"); exactly two
+  non-empty fields without leading/trailing spaces; spaces inside paths give a WARNING.
+  Tests in `tests/test_controler.py`.
 
 ### Changed
 
@@ -54,6 +62,8 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Removed
 
+- `gate_controler.py` notebook leftovers (`is_datawell`, `get_dict_data`, `save_ETDAC_matrix`,
+  module-level notebook code); reading returns in step 5c, writing in step 5e.
 - `setup.py`: duplicated package discovery from `pyproject.toml` with conflicting settings.
 - `requirements.txt`: duplicated the dev extras, had a typo (`pytest-conv`) and listed unused packages.
 
