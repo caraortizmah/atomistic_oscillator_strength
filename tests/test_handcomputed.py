@@ -17,6 +17,7 @@ import pandas as pd
 import pytest
 from conftest import OSC_INDEX, POP_INDEX, frame_from_csv
 
+from qm_etdac_calculator.errors import InputError
 from qm_etdac_calculator.etdac_operations import Operations, etdac_matrix, nonzero_mo_matrix, remove_noncontrb
 
 
@@ -187,3 +188,34 @@ def test_summary_is_reported_at_info(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO, logger="qm_etdac_calculator")
     _batch(**CASE_A)
     assert _messages(caplog, logging.INFO) == ["ETDAC calculated for 1 sample(s)"]
+
+
+# --- the same samples in all three inputs (step 5d, ADR 0005) -------------------------
+
+
+def _frames(hashes: list[str], case: dict[str, str]) -> tuple[dict, dict, dict]:
+    core = {h: frame_from_csv(case["core"], POP_INDEX) for h in hashes}
+    virt = {h: frame_from_csv(case["virt"], POP_INDEX) for h in hashes}
+    osc = {h: frame_from_csv(case["osc"], OSC_INDEX) for h in hashes}
+    return core, virt, osc
+
+
+def test_sample_missing_from_the_virtual_input_is_an_error_not_a_silent_drop() -> None:
+    core, virt, osc = _frames(["f10", "f11"], CASE_A)
+    del virt["f11"]  # before step 5d this sample silently disappeared from the results
+    with pytest.raises(InputError, match="hash 'f11' is missing from: virtual populations"):
+        Operations().etdac_batch(core, virt, osc)
+
+
+def test_sample_missing_from_the_core_input_is_an_error_not_a_key_error() -> None:
+    core, virt, osc = _frames(["f10", "f11"], CASE_A)
+    del core["f10"]
+    with pytest.raises(InputError, match="hash 'f10' is missing from: core populations"):
+        Operations().etdac_batch(core, virt, osc)
+
+
+def test_samples_in_different_orders_are_paired_by_hash() -> None:
+    core, virt, osc = _frames(["f10", "f11"], CASE_A)
+    virt = {"f11": virt["f11"], "f10": virt["f10"]}
+    result = Operations().etdac_batch(core, virt, osc)
+    assert list(result) == ["f11", "f10"]  # order of the virtual input, as in the notebook
