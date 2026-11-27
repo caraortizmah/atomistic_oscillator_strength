@@ -357,3 +357,11 @@ def test_distinct_hashes_pointing_to_the_same_file_are_accepted(tree: dict[str, 
     (tree["logs"] / "inputs" / "a.csv").write_text("num-1,sym,lvl,7\n1,C,s,60.0\n")
     list_file = _list(tree["logs"], "f10,inputs/a.csv", "f11,inputs/a.csv")
     assert list(Controler(tree["root"]).load_dict_data(list_file, "num-1")) == ["f10", "f11"]
+
+
+def test_invalid_hash_is_rejected_before_any_csv_is_read(tree: dict[str, Path]) -> None:
+    """Step 5d: the hash pattern is checked in the first pass, with the duplicates."""
+    (tree["logs"] / "inputs" / "a.csv").write_text("not a csv at all")  # would fail if it were read
+    list_file = _list(tree["logs"], "f10;rm,inputs/a.csv")
+    with pytest.raises(InputError, match="line 1: invalid hash"):
+        Controler(tree["root"]).load_dict_data(list_file, "num-1")
