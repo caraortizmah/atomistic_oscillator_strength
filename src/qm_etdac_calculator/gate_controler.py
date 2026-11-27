@@ -227,6 +227,22 @@ def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
 
     if not entries:
         raise InputError(f"{where} has no entries {FORMAT_HINT}")
+    if len(entries) > LIST_MAX_ENTRIES:
+        raise InputError(
+            f"{where} has {len(entries)} entries, more than the limit of {LIST_MAX_ENTRIES}: this is the "
+            f"{_SIZE_POLICY}; {_SPLIT_ADVICE}"
+        )
+    if len(entries) > LIST_RECOMMENDED_ENTRIES:
+        logger.warning(
+            "%s has %d entries, more than the recommended %d: accepted this time, but list files above %d "
+            "entries are rejected, and runs this large are slow to check and hard to repeat if one sample "
+            "fails; %s",
+            where,
+            len(entries),
+            LIST_RECOMMENDED_ENTRIES,
+            LIST_MAX_ENTRIES,
+            _SPLIT_ADVICE,
+        )
     return entries
 
 
