@@ -62,19 +62,24 @@ def test_classic_mac_line_endings_are_accepted_and_logged(caplog: pytest.LogCapt
     assert _logged(caplog, logging.INFO) == ["'resA_MOcore_list.log' uses classic Mac line endings (\\r)"]
 
 
-def test_mixed_line_endings_are_accepted_with_a_warning(caplog: pytest.LogCaptureFixture) -> None:
-    assert [e.hash for e in _parse(b"f10,a.csv\r\nf11,b.csv\nf12,c.csv\r")] == ["f10", "f11", "f12"]
+def test_mixed_windows_and_unix_line_endings_are_accepted_with_a_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """\\r\\n mixed with \\n: the \\r before \\n is a removable Windows leftover."""
+    assert [e.hash for e in _parse(b"f10,a.csv\r\nf11,b.csv\n")] == ["f10", "f11"]
     assert _logged(caplog, logging.WARNING) == [
-        "'resA_MOcore_list.log' has inconsistent line endings (\\r\\n: 1, \\n: 1, \\r: 1); "
+        "'resA_MOcore_list.log' has inconsistent line endings (\\r\\n: 1, \\n: 1); "
         "each one is treated as a line break"
     ]
 
 
-def test_lone_carriage_return_splits_the_line_and_never_edits_a_path() -> None:
-    """A lone \\r is a line break: the two halves must each be a valid line."""
-    # "f10,inputs/" is line 1 (2 fields, format OK); "a.csv" is line 2 and has 1 field
-    with pytest.raises(InputError, match="line 2: expected 2 fields"):
+def test_lone_carriage_return_in_a_unix_file_is_rejected() -> None:
+    """A lone \\r among \\n line endings is not interpreted: it is an error, never an edit."""
+    with pytest.raises(InputError, match="line 1: lone carriage return"):
         _parse(b"f10,inputs/\ra.csv\n")
+
+
+def test_lone_carriage_return_in_a_windows_file_is_rejected() -> None:
+    with pytest.raises(InputError, match="line 2: lone carriage return"):
+        _parse(b"f10,a.csv\r\nf11,b\r.csv\r\n")
 
 
 def test_utf8_bom_is_removed_and_logged(caplog: pytest.LogCaptureFixture) -> None:
