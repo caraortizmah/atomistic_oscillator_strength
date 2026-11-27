@@ -44,9 +44,14 @@ project uses [Semantic Versioning](https://semver.org/).
   absolute paths rejected; relative paths resolve against the list file's folder; symlinks
   followed, so links escaping the root are rejected; whole-component check (`is_relative_to`,
   no string prefixes); target must be an existing regular file.
+- `docs/input-format.md`: the simple, robust input format (list files and CSV headers),
+  what is tolerated, and common mistakes. Every format error ends with a pointer to it.
 
 ### Changed
 
+- List-file reader: a lone `\r` in a file that also uses `\n` or `\r\n` line endings is now an
+  error (not interpreted); `\n` mixed with `\r\n` stays a warning. The warning for spaces in
+  paths names the risk (shell commands and tools that do not quote paths).
 - `etdac_operations.py` rewritten: `etdac_matrix` (single sample, formerly
   `ts_psb_acore_bvirt`) as an explicit loop over shared MO labels, without `try/except`;
   `Operations` (option `trim_core=True`) with `etdac_batch` (all samples, formerly
