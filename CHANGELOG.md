@@ -27,6 +27,8 @@ project uses [Semantic Versioning](https://semver.org/).
   safe to call twice), `untrusted()` (repr + truncation for untrusted values) and
   `SafeFormatter` (escapes newlines and terminal control codes: CWE-117 log injection).
   Tests in `tests/test_logging.py`.
+- `Operations.etdac_batch` logs which non-contributing core MOs were removed per sample
+  (DEBUG, only when any) and a summary line (INFO); replaces the old `report_trimmed`.
 
 ### Changed
 
