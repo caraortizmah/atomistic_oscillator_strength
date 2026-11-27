@@ -22,6 +22,11 @@ project uses [Semantic Versioning](https://semver.org/).
 - ADR 0005 (input validation: allowlist, fail closed; context-aware output encoding;
   CSV/formula injection) and ADR 0006 (provenance metadata in output files).
 - `docs/development.md`: "Running tests" section.
+- `logging_setup.py`: `configure_logging` (console INFO by default, DEBUG with
+  `--verbose`/`--debug`; optional DEBUG log file opened in mode "x", never overwritten;
+  safe to call twice), `untrusted()` (repr + truncation for untrusted values) and
+  `SafeFormatter` (escapes newlines and terminal control codes: CWE-117 log injection).
+  Tests in `tests/test_logging.py`.
 
 ### Changed
 
