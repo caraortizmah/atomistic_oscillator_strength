@@ -1,5 +1,7 @@
 # ADR 0005: Input validation: allowlist, fail closed
 
+> Developer document. Users read [docs/input-format.md](../input-format.md); the hardening overview is in [docs/development.md](../development.md), section 5.
+
 - Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below; number format, `-0.0`, abbreviated decimals; population warnings: one per file, float tolerance, sums below 100 %; size limits: list-file byte cap of 3 MB, warning zone of 10 001 to 10 100 entries, capped reading); 2026-11-27: hash policy marked temporary, see "Temporary hash policy" below)
 - Date: 2026-11-26
 
