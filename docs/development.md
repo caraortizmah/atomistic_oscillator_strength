@@ -83,3 +83,62 @@ it deliberately, with a new ADR superseding ADR 0002, when both are true:
 Then: delete `tests/notebook_reference.py` and `tests/test_notebook_equivalence.py`, keep
 the hand-computed and golden tests, and regenerate the golden reference with the released
 package (recording its version and provenance, ADR 0006). Until then, keep it.
+
+## Logging and debugging
+
+### Logging
+
+- Every module logs through its own logger: `logger = logging.getLogger(__name__)`. Modules
+  never configure logging; only the program entry point calls
+  `qm_etdac_calculator.logging_setup.configure_logging()`.
+- Console (stderr): INFO and above by default; DEBUG with `--verbose` or `--debug`.
+  `--debug` also shows full tracebacks (CLI, step 6).
+- Log file: every run writes a DEBUG log next to its results in the output folder, under
+  the never-overwrite rule (ADR 0003); together with the provenance attributes (ADR 0006)
+  it records how each result was produced.
+- No `NullHandler` on purpose: when the package is used without configuration (e.g. from a
+  notebook), Python still prints WARNING and above, so validation warnings are never lost.
+- Security (ADR 0005, CWE-117): untrusted values go into messages through `untrusted()`
+  (repr, truncated), and `SafeFormatter` escapes control characters, so one record is
+  always one line and cannot inject terminal codes.
+- Write log calls as `logger.debug("%s: …", value)`, not with f-strings: the text is only
+  built if the message is actually emitted.
+
+In tests, the `caplog` fixture captures log records:
+
+```python
+def test_something(caplog):
+    caplog.set_level(logging.DEBUG, logger="qm_etdac_calculator")
+    ...  # run the code
+    assert "expected text" in caplog.text
+```
+
+### Debugging
+
+- `breakpoint()` anywhere in the code stops there and opens the Python debugger (pdb).
+  Useful commands: `n` next line, `s` step into, `c` continue, `p expr` print, `l` list
+  code, `q` quit. Remove it before committing.
+- `pytest --pdb` opens the debugger at the point where a test fails; `pytest -x --pdb`
+  stops at the first failure.
+- `python -m pdb script.py` runs a script under the debugger from the first line.
+- If results look stale after editing code, clear the bytecode cache: `scripts/clean.sh`.
+
+VS Code: create `.vscode/launch.json` (ignored by git) with, for example:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "pytest: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-x", "-q"],
+      "justMyCode": false
+    }
+  ]
+}
+```
+
+Set breakpoints by clicking left of a line number, then run this configuration (F5).

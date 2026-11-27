@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-27 - Checkpoint 5a (calculation green)_
+_Last updated: 2026-11-27 - Checkpoint 5b (logging)_
 
 ## How to resume
 
@@ -12,8 +12,8 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0–4 are committed; step 5 is split into 5a–5f, and
-  5a (calculation) is done: `pytest` gives 20 passed, including the golden test.
+- The packaging plan is agreed. Steps 0–4 are committed; step 5 is split into 5a–5f;
+  5a (calculation) and 5b (logging) are done: `pytest` gives 39 passed, including the golden test.
 - `import qm_etdac_calculator` works and exports the operations. `gate_controler.py`,
   `config.py`, `etdac_calculator.py`, `cli.py` and the `qm-etdac` command are still broken
   (notebook leftovers); nothing imports them until 5c–5f and step 6.
@@ -50,6 +50,7 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | D16 | Golden data set: Phe–Tyr, 52 geometries 3.5–11.0 Å (`f10`–`f61`, the paper's range), committed in `tests/data/phe_tyr/` with its reference output (cut from the notebook's `.h5`). Hashes keep their original IDs; `f<number>` is only a convention. | here |
 | D17 | Input validation: allowlist, fail closed; warnings for populations > 100 % and for MO sums > 100 % (two levels: "at the edge" up to 102.5 %, "beyond rounding tolerance" above). Size limits fixed for now. Required tests (negative + boundary pairs) listed in the ADR. Context-aware output encoding and CSV/formula injection documented as security examples. | ADR 0005 |
 | D18 | Output `.h5` files carry provenance: program, version, UTC time, SHA-256 of every input. | ADR 0006 |
+| D19 | Logging: console INFO by default, DEBUG with `--verbose`/`--debug`; a DEBUG log file next to every run's results (never overwritten); no `NullHandler`, so warnings stay visible when the package is used without configuration; `SafeFormatter` + `untrusted()` against log injection. | here |
 
 ## Plan
 
@@ -61,7 +62,7 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 - [x] 4. Tests (red): hand-computed, notebook-equivalence, golden (Phe–Tyr data committed in `tests/data/phe_tyr/`)
 - [ ] 5. Core, in small diffs (one commit per bullet):
   - [x] 5a. Calculation: `etdac_operations.py` rewritten (`etdac_matrix`, `Operations.etdac_batch`, `return_transition`); `__init__.py` imports only working modules; 20 tests green
-  - [ ] 5b. Logging foundation; includes the "non-contributing core MOs removed" report (replaces the old `report_trimmed`)
+  - [x] 5b. Logging foundation (`logging_setup.py`: levels, log file, `untrusted()`, `SafeFormatter`); "non-contributing core MOs removed" report and run summary in `etdac_batch`; "Logging and debugging" in `docs/development.md`
   - [ ] 5c. Reading inputs: `Controler` loads list files with the path policy (ADR 0003/0004)
   - [ ] 5d. Input validation, rule by rule (ADR 0005, "Required tests")
   - [ ] 5e. Writing outputs: `_oldversionN` rotation, atomic write, provenance (ADR 0003/0006)
