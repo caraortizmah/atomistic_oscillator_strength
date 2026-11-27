@@ -143,6 +143,26 @@ def read_text_lines(data: bytes, where: str) -> list[tuple[int, str]]:
                 f"{where} line {number}: forbidden character {untrusted(forbidden.group())} at position "
                 f"{forbidden.start() + 1} {FORMAT_HINT}"
             )
+        kept.append((number, line))
+    return kept
+
+
+def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
+    """
+    Parse the raw bytes of a list file into entries, in file order.
+
+    Args:
+        data: the file content as bytes.
+        name: the file name, used in messages.
+    Returns:
+        One ListEntry per non-blank line.
+    Raises:
+        InputError: the file is not valid UTF-8, has a malformed line, or has no entries.
+    """
+    where = untrusted(name)
+    entries: list[ListEntry] = []
+    for number, line in read_text_lines(data, where):
+        prefix = f"{where} line {number}"
         fields = line.split(",")
         if len(fields) != 2:
             raise InputError(
@@ -166,6 +186,9 @@ def read_text_lines(data: bytes, where: str) -> list[tuple[int, str]]:
     if not entries:
         raise InputError(f"{where} has no entries {FORMAT_HINT}")
     return entries
+
+
+_KIND_BY_INDEX = {"num-1": "population", "virt\\core": "oscillator"}
 
 
 class ResolvedEntry(NamedTuple):
@@ -263,6 +286,9 @@ class Controler:
         Raises:
             InputError: any problem from read_list_file(), or a duplicate hash.
         """
+        kind = _KIND_BY_INDEX.get(index_col)
+        if kind is None:  # a programming error, not an input error
+            raise ValueError(f"unknown index column {index_col!r}; expected one of {sorted(_KIND_BY_INDEX)}")
         entries = self.read_list_file(list_file)
         name = untrusted(Path(list_file).name)
 
@@ -277,7 +303,7 @@ class Controler:
                 )
             first_line[entry.hash] = entry.line
 
-        # 2. only then read the CSV files (their content is validated in step 5d)
-        data = {entry.hash: pd.read_csv(entry.path, delimiter=",", index_col=index_col) for entry in entries}
+        # 2. only then read the CSV files: bytes once, checked as text, then parsed (step 5d)
+        data = {entry.hash: self._read_csv(entry, index_col, kind, name) for entry in entries}
         logger.info("loaded %d entries from %s", len(data), name)
         return data
