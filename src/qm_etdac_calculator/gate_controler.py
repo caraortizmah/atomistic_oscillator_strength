@@ -36,8 +36,12 @@ Known limit: a file could be swapped between this check and the read (TOCTOU). F
 local single-user tool this is accepted; the reader opens the resolved path, not the
 original string.
 
-Hash content (pattern, duplicates, the same hashes in all three files) is validated in
-step 5d.
+Step 5c, bullet 3: load_dict_data() reads the CSV file of every entry (as the notebook did,
+but through the path policy) and returns {hash: DataFrame}. A duplicate hash in a list file
+is an error here, because a dict would silently keep only the last one.
+
+Hash pattern and the same hashes in all three files, and the CSV content, are validated in
+step 5d (ADR 0005).
 """
 
 from __future__ import annotations
@@ -46,6 +50,8 @@ import logging
 import re
 from pathlib import Path
 from typing import NamedTuple
+
+import pandas as pd
 
 from .errors import InputError
 from .logging_setup import untrusted
@@ -236,3 +242,34 @@ class Controler:
             resolved_entries.append(ResolvedEntry(entry.line, entry.hash, resolved))
         logger.debug("%s: %d entries passed the path policy", untrusted(list_path.name), len(resolved_entries))
         return resolved_entries
+
+    def load_dict_data(self, list_file: Path | str, index_col: str) -> dict[str, pd.DataFrame]:
+        """
+        Read every CSV file named in a list file (formerly load_dict_data in the notebook).
+
+        Args:
+            list_file: the list file (`hash,path` per line).
+            index_col: name of the CSV column used as row labels ("num-1" for population
+                files, "virt\\core" for oscillator-strength files).
+        Returns:
+            {hash: DataFrame}, in list-file order.
+        Raises:
+            InputError: any problem from read_list_file(), or a duplicate hash.
+        """
+        entries = self.read_list_file(list_file)
+        name = untrusted(Path(list_file).name)
+
+        # 1. check the whole list before opening any CSV file (fail fast, cheapest first)
+        first_line: dict[str, int] = {}
+        for entry in entries:
+            if entry.hash in first_line:
+                raise InputError(
+                    f"{name} line {entry.line}: duplicate hash {untrusted(entry.hash)} "
+                    f"(first on line {first_line[entry.hash]})"
+                )
+            first_line[entry.hash] = entry.line
+
+        # 2. only then read the CSV files (their content is validated in step 5d)
+        data = {entry.hash: pd.read_csv(entry.path, delimiter=",", index_col=index_col) for entry in entries}
+        logger.info("loaded %d entries from %s", len(data), name)
+        return data
