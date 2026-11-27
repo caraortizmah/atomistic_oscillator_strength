@@ -9,11 +9,18 @@ duplicates, the same hashes in all three files) is validated later, in step 5d.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import pytest
 
 from qm_etdac_calculator.errors import InputError
-from qm_etdac_calculator.gate_controler import ListEntry, parse_list_file
+from qm_etdac_calculator.gate_controler import (
+    Controler,
+    ListEntry,
+    ResolvedEntry,
+    default_data_root,
+    parse_list_file,
+)
 
 NAME = "resA_MOcore_list.log"
 
@@ -149,3 +156,132 @@ def test_error_messages_stay_on_one_line_and_show_values_safely() -> None:
     message = str(excinfo.value)
     assert "\n" not in message and "\x1b" not in message
     assert message.startswith("'resA_MOcore_list.log' line 1: ")
+
+
+# =====================================================================================
+# Path policy (step 5c, bullet 2; ADR 0003 and ADR 0004)
+# =====================================================================================
+
+@pytest.fixture
+def tree(tmp_path: Path) -> dict[str, Path]:
+    """
+    tmp/
+      root/                      <- data root
+        logs/  list files, inputs/a.csv
+        data/  b.csv
+        link_in   -> data/b.csv          (symlink staying inside the root)
+        link_out  -> ../outside/c.csv    (symlink escaping the root)
+        folder/
+      root2/x.csv                <- sibling whose name starts with "root"
+      outside/c.csv
+    """
+    root = tmp_path / "root"
+    for folder in (root / "logs" / "inputs", root / "data", root / "folder", tmp_path / "root2", tmp_path / "outside"):
+        folder.mkdir(parents=True)
+    for file in (root / "logs" / "inputs" / "a.csv", root / "data" / "b.csv", tmp_path / "root2" / "x.csv", tmp_path / "outside" / "c.csv"):
+        file.write_text("x\n")
+    (root / "link_in").symlink_to(root / "data" / "b.csv")
+    (root / "link_out").symlink_to(tmp_path / "outside" / "c.csv")
+    return {"tmp": tmp_path, "root": root, "logs": root / "logs"}
+
+
+def _list(folder: Path, *lines: str, name: str = "list.log") -> Path:
+    path = folder / name
+    path.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
+    return path
+
+
+def _read(tree: dict[str, Path], *lines: str) -> list[ResolvedEntry]:
+    return Controler(tree["root"]).read_list_file(_list(tree["logs"], *lines))
+
+
+# --- accepted ------------------------------------------------------------------------
+
+
+def test_default_data_root_is_the_parent_of_the_logs_folder(tree: dict[str, Path]) -> None:
+    """ADR 0004, until newFY_1-26 is renamed."""
+    assert default_data_root(tree["logs"]) == tree["root"].resolve()
+
+
+def test_relative_path_inside_the_logs_folder(tree: dict[str, Path]) -> None:
+    assert _read(tree, "f10,inputs/a.csv") == [
+        ResolvedEntry(1, "f10", (tree["logs"] / "inputs" / "a.csv").resolve())
+    ]
+
+
+def test_parent_folder_inside_the_data_root(tree: dict[str, Path]) -> None:
+    """The Bigscale case: ../newFY_1-26/... stays inside the data root."""
+    assert _read(tree, "f10,../data/b.csv")[0].path == (tree["root"] / "data" / "b.csv").resolve()
+
+
+def test_symlink_pointing_inside_is_followed(tree: dict[str, Path]) -> None:
+    assert _read(tree, "f10,../link_in")[0].path == (tree["root"] / "data" / "b.csv").resolve()
+
+
+def test_paths_resolve_against_the_list_file_not_the_working_folder(
+    tree: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tree["tmp"])  # running from elsewhere changes nothing
+    assert _read(tree, "f10,inputs/a.csv")[0].path == (tree["logs"] / "inputs" / "a.csv").resolve()
+
+
+def test_order_and_line_numbers_are_kept(tree: dict[str, Path]) -> None:
+    entries = _read(tree, "f11,../data/b.csv", "", "f10,inputs/a.csv")
+    assert [(e.line, e.hash) for e in entries] == [(1, "f11"), (3, "f10")]
+
+
+# --- rejected (InputError) -----------------------------------------------------------
+
+
+def test_absolute_path_is_rejected_even_inside_the_root(tree: dict[str, Path]) -> None:
+    inside = (tree["logs"] / "inputs" / "a.csv").resolve()
+    with pytest.raises(InputError, match="absolute paths are not allowed"):
+        _read(tree, f"f10,{inside}")
+
+
+def test_path_escaping_the_data_root_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="outside the data root"):
+        _read(tree, "f10,../../outside/c.csv")
+
+
+def test_sibling_folder_with_the_same_name_prefix_is_rejected(tree: dict[str, Path]) -> None:
+    """root2/ starts with "root": a string-prefix check would wrongly accept it."""
+    with pytest.raises(InputError, match="outside the data root"):
+        _read(tree, "f10,../../root2/x.csv")
+
+
+def test_symlink_pointing_outside_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="outside the data root"):
+        _read(tree, "f10,../link_out")
+
+
+def test_symlink_loop_is_rejected(tree: dict[str, Path]) -> None:
+    (tree["root"] / "loop").symlink_to(tree["root"] / "loop")
+    with pytest.raises(InputError, match="cannot resolve"):
+        _read(tree, "f10,../loop")
+
+
+def test_missing_file_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="line 1: file not found"):
+        _read(tree, "f10,inputs/missing.csv")
+
+
+def test_folder_instead_of_file_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="not a regular file"):
+        _read(tree, "f10,../folder")
+
+
+def test_list_file_outside_the_data_root_is_rejected(tree: dict[str, Path]) -> None:
+    outside_list = _list(tree["tmp"] / "outside", "f10,c.csv")
+    with pytest.raises(InputError, match="list file is outside the data root"):
+        Controler(tree["root"]).read_list_file(outside_list)
+
+
+def test_missing_list_file_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="list file not found"):
+        Controler(tree["root"]).read_list_file(tree["logs"] / "missing.log")
+
+
+def test_missing_data_root_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="data root not found"):
+        Controler(tree["tmp"] / "nowhere")
