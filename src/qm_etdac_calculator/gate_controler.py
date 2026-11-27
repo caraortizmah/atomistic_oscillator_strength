@@ -9,14 +9,17 @@ e.g. `f10,inputs/resA_MOcore_AB_3.5A_1-26.csv`. The reader is strict about struc
 tolerant only about harmless editing leftovers, which it reports:
 
 - UTF-8 only; a UTF-8 BOM at the start is removed (INFO).
-- Line endings \\n, \\r\\n or \\r are all line breaks; \\r\\n or \\r alone is reported at INFO,
-  a mix of them at WARNING. A lone \\r therefore splits a line; it never edits a path.
+- One line-ending style per file: \\n, \\r\\n (Windows, INFO) or \\r (classic Mac, INFO).
+  \\n mixed with \\r\\n is accepted with a WARNING (the \\r is a removable leftover). A lone \\r
+  in a file that also uses \\n or \\r\\n is an error: it is not interpreted, never edited.
 - Blank or whitespace-only lines are ignored (WARNING with file and line).
 - Any other control or invisible character is an error, including tab, ANSI escape,
   NUL, Unicode line separators, zero-width and bidirectional-override characters
   (the latter are the "Trojan Source" trick, CVE-2021-42574).
 - Exactly two non-empty fields; leading or trailing spaces in a field are an error;
-  spaces inside a path work in Python (no shell is involved) but give a WARNING.
+  spaces inside a path work in Python (no shell is involved) but give a WARNING, because
+  they may break shell commands or other tools that do not quote paths.
+- Format errors end with a pointer to docs/input-format.md (the simple, robust format).
 
 Step 5c, bullet 2: the path policy (ADR 0003, ADR 0004). A Controler may read only inside
 its data root:
@@ -49,6 +52,7 @@ from .logging_setup import untrusted
 
 logger = logging.getLogger(__name__)
 
+FORMAT_HINT = "(see docs/input-format.md)"
 _BOM = b"\xef\xbb\xbf"
 _LINE_BREAK = re.compile(r"\r\n|\r|\n")
 _BLANK = re.compile(r"[ \t]*")
@@ -67,7 +71,8 @@ class ListEntry(NamedTuple):
     path: str
 
 
-def _report_line_endings(text: str, where: str) -> None:
+def _check_line_endings(text: str, where: str) -> None:
+    """Report the line-ending style; reject a lone \\r mixed with \\n or \\r\\n endings."""
     crlf = text.count("\r\n")
     counts = {"\\r\\n": crlf, "\\n": text.count("\n") - crlf, "\\r": text.count("\r") - crlf}
     used = {kind: n for kind, n in counts.items() if n}
