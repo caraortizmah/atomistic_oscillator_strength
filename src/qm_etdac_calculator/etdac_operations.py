@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 
 from .logging_setup import untrusted
+from .validation import check_same_hashes
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +129,13 @@ class Operations:
             {hash: ETDAC matrix}, in the order of the virtual-population samples; rows
             "core-atom" (sorted), columns "virtual-atom". The virtual matrix is never
             trimmed (ADR 0002).
+        Raises:
+            InputError: the three inputs do not contain the same samples (ADR 0005); before
+                step 5d a sample missing from `virt` was silently dropped.
         """
+        check_same_hashes(
+            {"core populations": core, "virtual populations": virt, "oscillator strengths": etrans}
+        )
         if self.trim_core:
             trimmed = remove_noncontrb(core)
             for key in core:
