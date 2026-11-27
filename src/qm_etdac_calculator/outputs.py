@@ -32,22 +32,32 @@ it never overwrites and never leaves a half-written result:
    appeared meanwhile, e.g. from another run, survives and this run gets an OutputError);
 3. the temporary name is removed in every case, also when writing fails.
 The temporary file must be in the same folder because a hard link cannot cross filesystems.
+
+Step 5e, commit 3: provenance (ADR 0006). The file gets four attributes: `program`,
+`program_version`, `created_utc` (ISO 8601, UTC, to the second) and `input_files`, a JSON
+list of {"path", "sha256"} from Controler.inputs_read. The JSON is built with json.dumps
+(ASCII only: other characters are escaped), never by string concatenation, so a file name
+with quotes or brackets cannot break or forge the record (ADR 0005, context-aware output).
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
 import secrets
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
 import h5py
 import pandas as pd
 
+from . import __version__
 from .errors import OutputError
+from .gate_controler import InputRecord
 from .logging_setup import untrusted
 from .validation import HASH_PATTERN
 
