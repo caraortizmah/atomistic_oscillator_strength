@@ -97,6 +97,8 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 - Size limits (10 000 list entries, 50 MB per CSV) configurable; fixed values become defaults (ADR 0005). A warning zone for CSV sizes, like the one for list entries (10 001 to 10 100), can be added at the same time.
 - Hashes unique across all list files of one system (replaces the temporary hash policy of 1.2.0, ADR 0005). A large system can be split into many list files (e.g. 1 000 000 samples in 100 files); a hash must then be unique across all of them, not only within one list file, and hashes will be longer than the 9 characters recommended now. Needs a revision of ADR 0005 together with the design of multi-file runs.
 - Better sample IDs than `f<number>` (e.g. derived from the geometry or a UUID).
+- Unique output names or IDs instead of the fixed default `data_etdac_matrix` (to discuss).
+- Outputs from other jobs or systems in the same output folder: today the program warns and keeps the old result as `_oldversionN`, because it cannot tell whether the result belongs to the same system. A real solution is to discuss, together with unique output IDs: e.g. one output folder per system or job, comparing the provenance of the existing file (ADR 0006 input hashes) with the current run, or refusing to write into a folder that belongs to another system.
 - CI must handle one lock file per Python version (the lock is compiled for one interpreter); decide at step 9.
 - pandas lower bound (>= 2.1) is untested; the golden check passed on pandas 3.0. Test minimum versions in CI at step 9.
 - Rename the `resA_MOcore` / `resB_MOvirt` files. A and B label fragments and are not tied to

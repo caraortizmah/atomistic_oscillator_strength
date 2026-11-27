@@ -1,6 +1,6 @@
 # ADR 0003: Filesystem policy: least privilege, never overwrite
 
-- Status: accepted; default data root amended by ADR 0004
+- Status: accepted; default data root amended by ADR 0004; revised 2026-11-27 during step 5e (rotation details: number, pairs, warning, no-overwrite rename, output name and folder checks; see the implementation note)
 - Date: 2026-11-26
 
 ## Context
@@ -44,3 +44,9 @@ and its contents are user data and are never touched.
   until the folder is renamed.
 - More checks, all covered by tests.
 - Implementation: the reading part is implemented in step 5c (`gate_controler.Controler`, `read_list_file`, `load_dict_data`; tests in `tests/test_controler.py`, "Path policy" section). The writing part (output folder, `_oldversionN`, atomic write) follows in step 5e.
+- Implementation note, step 5e commit 1 (`outputs.prepare_outputs`, tests in `tests/test_outputs.py`):
+  - "Next free number" means the highest existing N + 1. Gaps left by deleted files stay, so a higher N is always a newer old version.
+  - A run writes a pair, `<stem>.h5` and `<stem>.log` (default stem `data_etdac_matrix`); both are rotated together with the same N, counted over both extensions. A log without results (a failed run) is kept too.
+  - Every rotation logs one WARNING naming the existing files and their new names: the existing result may come from another job or system, and the program cannot tell yet (a real solution is in the Future list of `docs/project-state.md`).
+  - Renames never overwrite: `os.link()` fails if the new name exists (`os.rename()` would silently replace it on Linux), then the old name is removed. A second run racing for the same name gets an `OutputError`.
+  - The output folder must be a real folder, not a file and not a symbolic link (a planted link would redirect the results, CWE-59). The output name (stem) is 1 to 64 ASCII letters, digits, `_` or `-`, starting with a letter or digit: no path or extension can be passed through it.
