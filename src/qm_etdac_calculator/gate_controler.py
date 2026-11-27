@@ -76,6 +76,13 @@ def _check_line_endings(text: str, where: str) -> None:
     crlf = text.count("\r\n")
     counts = {"\\r\\n": crlf, "\\n": text.count("\n") - crlf, "\\r": text.count("\r") - crlf}
     used = {kind: n for kind, n in counts.items() if n}
+    if "\\r" in used and len(used) > 1:
+        number = next(n for n, line in enumerate(re.split(r"\r\n|\n", text), start=1) if "\r" in line)
+        others = " and ".join(kind for kind in used if kind != "\\r")  # outside the f-string (Python 3.11)
+        raise InputError(
+            f"{where} line {number}: lone carriage return (\\r) in a file with {others} line endings; "
+            f"save the file with one line-ending style {FORMAT_HINT}"
+        )
     if len(used) > 1:
         detail = ", ".join(f"{kind}: {n}" for kind, n in used.items())
         logger.warning("%s has inconsistent line endings (%s); each one is treated as a line break", where, detail)
