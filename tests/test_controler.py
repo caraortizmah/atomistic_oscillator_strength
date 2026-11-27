@@ -8,6 +8,7 @@ duplicates, the same hashes in all three files) is validated later, in step 5d.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 
@@ -17,6 +18,7 @@ import pytest
 from qm_etdac_calculator.errors import InputError
 from qm_etdac_calculator.gate_controler import (
     Controler,
+    InputRecord,
     ListEntry,
     ResolvedEntry,
     default_data_root,
@@ -589,3 +591,92 @@ def test_size_messages_use_mb_for_real_limits(tmp_path: Path) -> None:
     big.write_bytes(b"x" * 2_000_001)
     with pytest.raises(InputError, match="larger than 2 MB, the size limit for CSV files"):
         gate.read_limited(big, 2_000_000, "'big.csv'", "CSV files")
+
+
+# --- provenance of the inputs (step 5e, commit 3; ADR 0006) ---------------------------------
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_every_file_read_is_recorded_with_its_sha256_relative_to_the_data_root(tree: dict[str, Path]) -> None:
+    list_file = _csv_and_list(tree, POP.encode())
+    controler = Controler(tree["root"])
+    assert controler.inputs_read == ()
+    controler.load_dict_data(list_file, "num-1")
+    assert controler.inputs_read == (
+        InputRecord("logs/list.log", _sha256(list_file)),
+        InputRecord("logs/inputs/a.csv", _sha256(tree["logs"] / "inputs" / "a.csv")),
+    )
+
+
+def test_recorded_paths_reveal_nothing_outside_the_data_root(tree: dict[str, Path]) -> None:
+    """Paths are relative: no home folder or machine layout leaks into a shared result (ADR 0006)."""
+    controler = Controler(tree["root"])
+    controler.load_dict_data(_csv_and_list(tree, POP.encode()), "num-1")
+    for record in controler.inputs_read:
+        assert not record.path.startswith("/")
+        assert str(tree["tmp"]) not in record.path
+
+
+def test_a_symlinked_input_is_recorded_under_its_real_path(tree: dict[str, Path]) -> None:
+    """The record names the file that was actually read, not the link."""
+    (tree["root"] / "data" / "b.csv").write_text(POP)
+    controler = Controler(tree["root"])
+    controler.load_dict_data(_list(tree["logs"], "f10,../link_in"), "num-1")
+    assert controler.inputs_read[-1].path == "data/b.csv"
+
+
+def test_a_file_read_twice_unchanged_is_recorded_once(tree: dict[str, Path]) -> None:
+    list_file = _csv_and_list(tree, POP.encode())
+    controler = Controler(tree["root"])
+    controler.load_dict_data(list_file, "num-1")
+    controler.load_dict_data(list_file, "num-1")
+    assert len(controler.inputs_read) == 2
+
+
+def test_a_file_that_changed_between_two_reads_is_recorded_twice(tree: dict[str, Path]) -> None:
+    """Both versions were used, so both are evidence."""
+    list_file = _csv_and_list(tree, POP.encode())
+    controler = Controler(tree["root"])
+    controler.load_dict_data(list_file, "num-1")
+    (tree["logs"] / "inputs" / "a.csv").write_text(POP.replace("60.0", "61.0").replace("40.0", "39.0"))
+    controler.load_dict_data(list_file, "num-1")
+    assert [r.path for r in controler.inputs_read] == ["logs/list.log", "logs/inputs/a.csv", "logs/inputs/a.csv"]
+
+
+def test_recorded_hash_is_of_the_bytes_that_were_checked(tree: dict[str, Path], monkeypatch: pytest.MonkeyPatch) -> None:
+    """TOCTOU: the file is swapped right after it is read; the record still describes what was used."""
+    import qm_etdac_calculator.gate_controler as gate
+
+    original = gate.read_text_lines
+    csv = tree["logs"] / "inputs" / "a.csv"
+
+    def check_then_swap(data: bytes, where: str) -> list[tuple[int, str]]:
+        lines = original(data, where)
+        if where.endswith("'a.csv'"):
+            csv.write_bytes(b"num-1,sym,lvl,7\n1,C,s,0.0\n2,C,s,0.0\n")
+        return lines
+
+    list_file = _csv_and_list(tree, POP.encode())
+    used = hashlib.sha256(POP.encode()).hexdigest()
+    monkeypatch.setattr(gate, "read_text_lines", check_then_swap)
+    controler = Controler(tree["root"])
+    controler.load_dict_data(list_file, "num-1")
+    assert controler.inputs_read[-1] == InputRecord("logs/inputs/a.csv", used)
+    assert _sha256(csv) != used  # the file on disk changed; the record did not
+
+
+def test_rejected_files_are_not_recorded(tree: dict[str, Path]) -> None:
+    controler = Controler(tree["root"])
+    with pytest.raises(InputError):
+        controler.load_dict_data(_csv_and_list(tree, b"num-1,sym,lvl,7\n1,C,s,nan\n"), "num-1")
+    assert [r.path for r in controler.inputs_read] == ["logs/list.log"]
+
+
+def test_inputs_read_cannot_be_changed_from_outside(tree: dict[str, Path]) -> None:
+    controler = Controler(tree["root"])
+    controler.load_dict_data(_csv_and_list(tree, POP.encode()), "num-1")
+    with pytest.raises(AttributeError):
+        controler.inputs_read.append(InputRecord("x", "0" * 64))  # type: ignore[attr-defined]
