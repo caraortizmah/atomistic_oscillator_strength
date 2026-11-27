@@ -111,9 +111,9 @@ def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as error:
-        raise InputError(f"{where} is not valid UTF-8 (byte {error.start})") from None
+        raise InputError(f"{where} is not valid UTF-8 (byte {error.start}) {FORMAT_HINT}") from None
 
-    _report_line_endings(text, where)
+    _check_line_endings(text, where)
     lines = _LINE_BREAK.split(text)
     if lines and lines[-1] == "":
         lines.pop()  # the final line break is normal, not a blank line
@@ -127,23 +127,31 @@ def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
         forbidden = _FORBIDDEN.search(line)
         if forbidden:
             raise InputError(
-                f"{prefix}: forbidden character {untrusted(forbidden.group())} at position {forbidden.start() + 1}"
+                f"{prefix}: forbidden character {untrusted(forbidden.group())} at position "
+                f"{forbidden.start() + 1} {FORMAT_HINT}"
             )
         fields = line.split(",")
         if len(fields) != 2:
-            raise InputError(f"{prefix}: expected 2 fields 'hash,path', found {len(fields)}: {untrusted(line)}")
+            raise InputError(
+                f"{prefix}: expected 2 fields 'hash,path', found {len(fields)}: {untrusted(line)} {FORMAT_HINT}"
+            )
         hash_, path = fields
         for label, value in (("hash", hash_), ("path", path)):
             if value == "":
-                raise InputError(f"{prefix}: empty {label}")
+                raise InputError(f"{prefix}: empty {label} {FORMAT_HINT}")
             if value != value.strip(" "):
-                raise InputError(f"{prefix}: {label} has leading or trailing spaces: {untrusted(value)}")
+                raise InputError(f"{prefix}: {label} has leading or trailing spaces: {untrusted(value)} {FORMAT_HINT}")
         if " " in path:
-            logger.warning("%s: path contains spaces (works, but avoid it): %s", prefix, untrusted(path))
+            logger.warning(
+                "%s: path contains spaces: works in this program, but may break shell commands or other "
+                "tools that do not quote paths; rename the file: %s",
+                prefix,
+                untrusted(path),
+            )
         entries.append(ListEntry(number, hash_, path))
 
     if not entries:
-        raise InputError(f"{where} has no entries")
+        raise InputError(f"{where} has no entries {FORMAT_HINT}")
     return entries
 
 
@@ -212,7 +220,7 @@ class Controler:
             prefix = f"{untrusted(list_path.name)} line {entry.line}"
             written = Path(entry.path)
             if written.is_absolute():
-                raise InputError(f"{prefix}: absolute paths are not allowed: {untrusted(entry.path)}")
+                raise InputError(f"{prefix}: absolute paths are not allowed: {untrusted(entry.path)} {FORMAT_HINT}")
             try:
                 resolved = (base / written).resolve(strict=True)  # follows symlinks
             except FileNotFoundError:
