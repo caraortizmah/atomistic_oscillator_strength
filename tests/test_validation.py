@@ -9,7 +9,9 @@ from __future__ import annotations
 import pytest
 
 from qm_etdac_calculator.errors import InputError
-from qm_etdac_calculator.validation import check_csv_structure, check_hash, check_same_hashes
+import logging
+
+from qm_etdac_calculator.validation import check_csv_structure, check_csv_values, check_hash, check_same_hashes
 
 # --- hash pattern: ^[A-Za-z0-9]{1,64}$, ASCII only ----------------------------------
 
@@ -168,4 +170,87 @@ def test_spaces_around_cells_are_rejected_with_an_explanation(text: str) -> None
 def test_structure_errors_name_the_sample_and_file() -> None:
     with pytest.raises(InputError) as excinfo:
         check_csv_structure(_rows("x"), "population", WHERE)
+    assert str(excinfo.value).startswith(WHERE + ": ")
+
+
+# --- CSV values (step 5d, commit 3a) --------------------------------------------------
+
+
+def _population(value: str, sym: str = "C", lvl: str = "s") -> list[tuple[int, list[str]]]:
+    return _rows(f"num-1,sym,lvl,7\n1,{sym},{lvl},{value}")
+
+
+def _oscillator(value: str) -> list[tuple[int, list[str]]]:
+    return _rows(f"virt\\core,7\n92,{value}")
+
+
+@pytest.mark.parametrize("value", ["0", "0.0", "99.6", "1e-6", "8.73323e-06", "1E5", "2.5e+3", "-0.0", "-0"])
+def test_numbers_in_the_parser_format_are_accepted(value: str) -> None:
+    check_csv_values(_population(value), "population", WHERE)
+    check_csv_values(_oscillator(value), "oscillator", WHERE)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "nan", "NaN", "inf", "-inf", "Infinity", "", "abc",  # not numbers
+        "=HYPERLINK(1)", "+1", "@SUM(A1)",  # formula injection
+        "1_000", "0x1F", "1e", "e5", "1.2.3", "--1",  # float() accepts some of these
+        "\u0661", "\uff11",  # Arabic-Indic and full-width digits: float() accepts them
+    ],
+)
+def test_values_that_are_not_plain_numbers_are_rejected(value: str) -> None:
+    with pytest.raises(InputError, match="CSV line 2, column 7: .* is not a number"):
+        check_csv_values(_population(value), "population", WHERE)
+
+
+def test_overflow_to_infinity_is_rejected() -> None:
+    with pytest.raises(InputError, match="CSV line 2, column 7: .* is not a finite number"):
+        check_csv_values(_population("1e999"), "population", WHERE)
+
+
+def test_negative_population_is_rejected() -> None:
+    with pytest.raises(InputError, match="CSV line 2, column 7: negative population '-0.1'"):
+        check_csv_values(_population("-0.1"), "population", WHERE)
+
+
+def test_negative_oscillator_strength_is_rejected() -> None:
+    with pytest.raises(InputError, match="CSV line 2, column 7: negative oscillator strength '-1e-9'"):
+        check_csv_values(_oscillator("-1e-9"), "oscillator", WHERE)
+
+
+@pytest.mark.parametrize(("sym", "lvl"), [("C", "s"), ("atom", "lvlMO"), ("abcdefgh", "s")])
+def test_letter_only_text_columns_are_accepted(sym: str, lvl: str) -> None:
+    check_csv_values(_population("1.0", sym, lvl), "population", WHERE)
+
+
+@pytest.mark.parametrize(
+    ("sym", "lvl", "column"),
+    [("<script>", "s", "sym"), ("C;", "s", "sym"), ("C1", "s", "sym"), ("abcdefghi", "s", "sym"), ("C", "", "lvl")],
+)
+def test_text_columns_must_be_letters_only(sym: str, lvl: str, column: str) -> None:
+    with pytest.raises(InputError, match=f"CSV line 2, column {column}: invalid text"):
+        check_csv_values(_population("1.0", sym, lvl), "population", WHERE)
+
+
+def test_abbreviated_decimals_are_accepted_with_one_warning_per_file(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_rows("num-1,sym,lvl,7,8\n1,C,s,.5,5.\n2,C,s,0.5,1.0"), "population", WHERE)
+    warnings = [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(warnings) == 1
+    assert "2 value(s) written without a leading or trailing zero" in warnings[0]
+    assert "first: CSV line 2, column 7: '.5' read as 0.5" in warnings[0]
+    assert "write 0.5 and 5.0" in warnings[0]
+
+
+def test_full_numbers_give_no_warning(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_rows("num-1,sym,lvl,7\n1,C,s,0.5\n2,C,s,5.0"), "population", WHERE)
+    assert [r for r in caplog.records if r.levelno == logging.WARNING] == []
+
+
+def test_value_errors_show_the_value_safely() -> None:
+    with pytest.raises(InputError) as excinfo:
+        check_csv_values(_population("1\x1b[31m"), "population", WHERE)
+    assert "\x1b" not in str(excinfo.value)
     assert str(excinfo.value).startswith(WHERE + ": ")
