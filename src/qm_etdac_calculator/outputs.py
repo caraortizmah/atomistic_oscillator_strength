@@ -136,7 +136,24 @@ def prepare_outputs(output_dir: Path | str = DEFAULT_OUTPUT_DIR, stem: str = DEF
     return OutputPaths(h5=folder / f"{stem}.h5", log=folder / f"{stem}.log")
 
 
-def _write_groups(results: Mapping[str, pd.DataFrame], temporary: Path) -> None:
+PROGRAM = "qm_etdac_calculator"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def provenance(inputs: Sequence[InputRecord]) -> dict[str, str]:
+    """The file-level attributes of ADR 0006 for a result made from `inputs`."""
+    return {
+        "program": PROGRAM,
+        "program_version": __version__,
+        "created_utc": _utc_now(),
+        "input_files": json.dumps([{"path": r.path, "sha256": r.sha256} for r in inputs], ensure_ascii=True),
+    }
+
+
+def _write_groups(results: Mapping[str, pd.DataFrame], temporary: Path, attrs: Mapping[str, str]) -> None:
     """Write every sample into a new file (mode "x": the temporary name must not exist)."""
     with h5py.File(temporary, "x") as file:
         for hash_, frame in results.items():
