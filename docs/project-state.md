@@ -71,7 +71,7 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 - [ ] 6b. `etdac_editprinter` as functions; atom-range config
 - [ ] 7. Vectorised `etdac_matrix` (was `ts_psb_acore_bvirt`; spec + failing test provided)
 - [ ] 8. ruff (incl. `S` security rules), then mypy, then pre-commit
-- [ ] 9. GitHub Actions CI: least-privilege token, SHA-pinned actions, hashed install, build + `twine check`; recompile the lock and fail on diff; `pip-audit` (proposed)
+- [ ] 9. GitHub Actions CI: least-privilege token, SHA-pinned actions, hashed install, build + `twine check`; recompile the lock and fail on diff; `pip-audit` (proposed); test on the oldest and newest supported Python (3.11 and 3.14): a 3.12+-only f-string slipped in during 5c and was caught by hand
 - [ ] 10. README, docs cleanup (incl. resA/resB naming note, uninstall note, empty "Run Pipeline" section in `docs/installation.md`), release 1.2.0
 
 ## Open questions
@@ -82,6 +82,13 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 
 ## Future (not in 1.2.0)
 
+- **Priority 1 for the next release: HPC / cluster architecture.** Allow explicitly
+  authorized data roots outside the program's folders (e.g. a project or scratch space on a
+  cluster), configured by the user, never guessed. Work stays inside the authorized paths:
+  if code or temporary files must move, they go to a temporary working area *inside* the
+  same authorized path, never elsewhere. Same philosophy as ADR 0003/0004: least privilege,
+  no lateral movement between folders. Needs its own ADR (supersedes the data-root default
+  of ADR 0004 together with the `newFY_1-26` rename).
 - Retire the notebook reference (`tests/notebook_reference.py`, `tests/test_notebook_equivalence.py`) once a validated release becomes the reference and the method changes; new ADR superseding ADR 0002 (criteria in `docs/development.md`).
 - Size limits (10 000 list entries, 50 MB per CSV) configurable; fixed values become defaults (ADR 0005).
 - Better sample IDs than `f<number>` (e.g. derived from the geometry or a UUID).
