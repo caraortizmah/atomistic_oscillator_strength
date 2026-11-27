@@ -37,6 +37,8 @@ Warnings (the run continues, the warning is logged, the data's veracity should b
 
 Why the 2.5 tolerance: the parser prints populations with one decimal, so each value carries a rounding error of up to 0.05. Summed over 47 atoms, that is up to 47 × 0.05 = 2.35 percentage points. A column sum of, say, 101.2 is therefore probably a rounding artefact, not a data error, but it is still reported as a warning: data at the edge must never pass unnoticed. Above 102.5 rounding can no longer explain it, and the warning says so. A sum of exactly 100.0 gives no warning. In the Phe–Tyr data the largest column sum is 99.8.
 
+Scope of the tolerance: 2.5 is calibrated for systems of up to 47 atoms with values printed to one decimal. For N atoms the worst-case rounding error is N × 0.05 percentage points (e.g. 100 atoms: 5.0), so larger systems can trigger the "beyond rounding tolerance" warning from rounding alone. Providing values with adequate precision (more decimals for larger systems) is the user's responsibility; the user documentation (`docs/input-format.md`) says so. Making the tolerance depend on the number of atoms is a possible future change and would need a revision of this ADR.
+
 ### Security distinction 1: context-aware handling (validate on input, encode on output)
 
 Input validation and output encoding are two different controls, and neither replaces the other.

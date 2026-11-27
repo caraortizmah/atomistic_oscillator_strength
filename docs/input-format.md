@@ -63,3 +63,9 @@ The CSV files are read as produced by xas-qmol-parser (comma-separated):
 
 Their content is validated as described in ADR 0005 (finite numbers, populations ≥ 0,
 letters-only `sym`/`lvl`, and the warnings for population sums above 100 %).
+
+### Precision of the population values (your responsibility)
+
+Populations are expected in percent. The sum of one MO's populations over the atoms should not exceed 100 %; above it the program warns ("at the edge" up to 102.5 %, "beyond rounding tolerance" above).
+
+The 2.5 tolerance covers the rounding of values printed with **one decimal** for systems of **up to 47 atoms** (each value can be off by up to 0.05; 47 × 0.05 = 2.35). For larger systems the rounding error grows with the number of atoms (N × 0.05; 100 atoms: up to 5.0) and can trigger the "beyond rounding tolerance" warning even for correct data. **Providing values with enough precision is the user's responsibility**: for systems larger than 47 atoms, export the populations with more decimals.
