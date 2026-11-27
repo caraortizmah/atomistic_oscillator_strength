@@ -254,3 +254,91 @@ def test_value_errors_show_the_value_safely() -> None:
         check_csv_values(_population("1\x1b[31m"), "population", WHERE)
     assert "\x1b" not in str(excinfo.value)
     assert str(excinfo.value).startswith(WHERE + ": ")
+
+
+# --- population sums (step 5d, commit 3b) ---------------------------------------------
+
+
+def _column(*values: str) -> list[tuple[int, list[str]]]:
+    """One MO column (label 7) with one atom per value."""
+    lines = [f"{atom},C,s,{value}" for atom, value in enumerate(values, start=1)]
+    return _rows("num-1,sym,lvl,7\n" + "\n".join(lines))
+
+
+def _warnings(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        ("60.0", "40.0"),  # exactly 100
+        ("0.4", "32.2", "67.4"),  # 100 in decimal, 100.00000000000001 as floats: the tolerance absorbs it
+        ("50.0", "46.1"),  # below 100: normal in the Phe-Tyr data (96.1 to 99.8)
+        ("100.0", "0.0"),  # one atom holds the whole MO
+    ],
+)
+def test_population_sums_up_to_100_give_no_warning(values: tuple[str, ...], caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_column(*values), "population", WHERE)
+    assert _warnings(caplog) == []
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        ("60.0", "40.1"),  # 100.1: just above
+        ("60.0", "41.0"),  # 101.0
+        ("60.0", "42.5"),  # 102.5: the edge itself
+        ("0.4", "32.2", "69.9"),  # 102.5 in decimal, 102.50000000000001 as floats: still at the edge
+    ],
+)
+def test_population_sum_within_rounding_tolerance_warns_at_the_edge(
+    values: tuple[str, ...], caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_column(*values), "population", WHERE)
+    warnings = _warnings(caplog)
+    assert len(warnings) == 1
+    assert warnings[0].startswith(WHERE + ": ")
+    assert "1 MO column(s) add up to more than 100 % but within the rounding tolerance of 102.5 % (at the edge" in warnings[0]
+    assert "beyond" not in warnings[0]
+
+
+def test_population_sum_beyond_rounding_tolerance_warns(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_column("60.0", "42.6"), "population", WHERE)
+    warnings = _warnings(caplog)
+    assert len(warnings) == 1
+    assert "1 MO column(s) add up to more than 102.5 %, beyond the rounding tolerance (first: column 7, sum 102.60)" in warnings[0]
+    assert "at the edge" not in warnings[0]
+
+
+def test_single_population_above_100_warns(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_column("100.1", "0.0"), "population", WHERE)
+    warnings = _warnings(caplog)
+    assert len(warnings) == 1
+    assert "1 value(s) above 100 % (first: CSV line 2, column 7: '100.1')" in warnings[0]
+
+
+def test_population_problems_in_one_file_give_one_warning_with_counts(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    text = "num-1,sym,lvl,7,8,9,10\n1,C,s,60.0,60.0,101.0,50.0\n2,C,s,41.0,42.0,0.0,50.0\n3,C,s,0.0,1.0,0.0,0.0"
+    check_csv_values(_rows(text), "population", WHERE)
+    warnings = _warnings(caplog)
+    assert len(warnings) == 1
+    message = warnings[0]
+    assert "1 value(s) above 100 % (first: CSV line 2, column 9: '101.0')" in message
+    assert "2 MO column(s) add up to more than 100 % but within" in message  # columns 7 (101.0) and 9 (101.0)
+    assert "(at the edge; first: column 7, sum 101.00)" in message
+    assert "1 MO column(s) add up to more than 102.5 %" in message  # column 8 (103.0)
+    assert "first: column 8, sum 103.00" in message
+    assert "check the population output of this sample" in message
+
+
+def test_oscillator_strengths_have_no_100_limit(caplog: pytest.LogCaptureFixture) -> None:
+    """Oscillator strengths are not percentages; only populations add up to 100 %."""
+    caplog.set_level(logging.WARNING, logger="qm_etdac_calculator")
+    check_csv_values(_rows("virt\\core,7\n92,150.0\n93,80.0"), "oscillator", WHERE)
+    assert _warnings(caplog) == []

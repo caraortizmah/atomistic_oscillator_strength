@@ -21,6 +21,16 @@ an explicit pattern before conversion, because float() is far too permissive: it
 becomes infinity. Accepted: 0, 0.0, 99.6, 8.73323e-06, 1E5; ".5" and "5." are read as 0.5
 and 5.0 with one WARNING per file. Populations and oscillator strengths must be >= 0
 (-0.0 is zero and accepted). The text columns sym / lvl hold 1 to 8 ASCII letters.
+
+Step 5d, commit 3b: population sums (populations only). A population is a percentage of one
+MO on one atom, so a value above 100 % and an MO column adding up to more than 100 % point to
+a problem in the parser output. Values are rounded to one decimal, so with up to 47 atoms a
+column can reach 100 + 47 x 0.05 = 102.35 % by rounding alone: sums up to 102.5 % are "at the
+edge", above it "beyond the rounding tolerance". These are warnings, not errors (ADR 0005).
+Columns are added with math.fsum (exact rounding, no error growing with the number of atoms),
+and FLOAT_TOLERANCE absorbs the remaining binary representation error: 0.4 + 32.2 + 67.4 is
+100.00000000000001 as floats. Sums below 100 % are normal (small contributions are not
+written by the parser; the Phe-Tyr data has 96.1 to 99.8 %) and give no warning.
 """
 
 from __future__ import annotations
@@ -43,6 +53,9 @@ ABBREVIATED = re.compile(r"^-?\.|\.(?:[eE]|$)")  # ".5" (no leading zero) or "5.
 TEXT_PATTERN = re.compile(r"[A-Za-z]{1,8}")
 QUANTITY = {"population": "population", "oscillator": "oscillator strength"}
 MAX_REPORTED = 10  # problems listed in one message; the rest are counted
+POPULATION_TOTAL = 100.0  # percent: one MO over all atoms
+ROUNDING_EDGE = 102.5  # percent: 47 atoms x 0.05 rounding = 102.35, plus margin
+FLOAT_TOLERANCE = 1e-9  # absorbs binary representation error, far below the 0.1 resolution
 
 
 def check_hash(value: str, where: str) -> None:
@@ -164,6 +177,8 @@ def check_csv_values(rows: list[tuple[int, list[str]]], kind: str, where: str) -
     header = rows[0][1]
     first_number = len(HEADER_PREFIX[kind])
     abbreviated: list[tuple[int, str, str]] = []
+    columns: dict[str, list[float]] = {label: [] for label in header[first_number:]}
+    above_total: list[tuple[int, str, str]] = []
     for number, cells in rows[1:]:
         if kind == "population":
             for column, cell in (("sym", cells[1]), ("lvl", cells[2])):
@@ -186,6 +201,9 @@ def check_csv_values(rows: list[tuple[int, list[str]]], kind: str, where: str) -
                 raise InputError(f"{where}: {position}: negative {QUANTITY[kind]} {untrusted(cell)} {FORMAT_HINT}")
             if ABBREVIATED.search(cell):
                 abbreviated.append((number, label, cell))
+            columns[label].append(value)
+            if kind == "population" and value > POPULATION_TOTAL + FLOAT_TOLERANCE:
+                above_total.append((number, label, cell))
     if abbreviated:
         number, label, cell = abbreviated[0]
         logger.warning(
@@ -198,4 +216,47 @@ def check_csv_values(rows: list[tuple[int, list[str]]], kind: str, where: str) -
             label,
             untrusted(cell),
             float(cell),
+        )
+    if kind == "population":
+        _warn_about_population_sums(columns, above_total, where)
+
+
+def _warn_about_population_sums(
+    columns: dict[str, list[float]], above_total: list[tuple[int, str, str]], where: str
+) -> None:
+    """Log one WARNING for the file if a population or an MO column sum exceeds 100 %."""
+    at_edge: list[tuple[str, float]] = []
+    beyond: list[tuple[str, float]] = []
+    for label, values in columns.items():
+        total = math.fsum(values)
+        if total > ROUNDING_EDGE + FLOAT_TOLERANCE:
+            beyond.append((label, total))
+        elif total > POPULATION_TOTAL + FLOAT_TOLERANCE:
+            at_edge.append((label, total))
+
+    parts = []
+    if above_total:
+        number, label, cell = above_total[0]
+        parts.append(
+            f"{len(above_total)} value(s) above 100 % (first: CSV line {number}, column {label}: {untrusted(cell)})"
+        )
+    if at_edge:
+        label, total = at_edge[0]
+        parts.append(
+            f"{len(at_edge)} MO column(s) add up to more than 100 % but within the rounding tolerance of "
+            f"{ROUNDING_EDGE} % (at the edge; first: column {label}, sum {total:.2f})"
+        )
+    if beyond:
+        label, total = beyond[0]
+        parts.append(
+            f"{len(beyond)} MO column(s) add up to more than {ROUNDING_EDGE} %, beyond the rounding tolerance "
+            f"(first: column {label}, sum {total:.2f})"
+        )
+    if parts:
+        logger.warning(
+            "%s: populations above 100 %%: %s; check the population output of this sample: each MO column "
+            "should add up to at most 100 %% (up to %s %% can come from rounding to one decimal)",
+            where,
+            "; ".join(parts),
+            ROUNDING_EDGE,
         )
