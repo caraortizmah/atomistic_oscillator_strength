@@ -116,115 +116,33 @@ class Operations:
         ETDAC matrices of all samples (formerly heatmap_ETDAC plus formatting).
 
         Args:
-        dict_data_raw (dict): the pd.frames inside can have zeroes
-        or nan values.
-        Output (dict): dict_data only with nonzero elements.
+            core: {hash: core-MO population matrix as loaded, with sym / lvl columns}.
+            virt: {hash: virtual-MO population matrix as loaded, with sym / lvl columns}.
+            etrans: {hash: oscillator-strength matrix as loaded}.
+        Returns:
+            {hash: ETDAC matrix}, in the order of the virtual-population samples; rows
+            "core-atom" (sorted), columns "virtual-atom". The virtual matrix is never
+            trimmed (ADR 0002).
         """
-        dict_data = {}
-        for key, value in dict_data_raw.items():
-            dict_data.update({key: nonzero_mo_matrix(value)})
-        return dict_data
-    
-    def nonzero_mo_matrix(df) -> DataFrame:
-        """
-        it returns MO matrix (df) having just non-zero MO population.
-        """
-        return df.loc[:, (df != 0).any(axis=0)] #removing zero columns
+        if self.trim_core:
+            core = remove_noncontrb(core)
+        result: dict[str, pd.DataFrame] = {}
+        for key in virt:
+            matrix = etdac_matrix(
+                core[key].drop(columns=TEXT_COLUMNS),
+                virt[key].drop(columns=TEXT_COLUMNS),
+                etrans[key],
+            )
+            matrix.index.name = "core-atom"
+            matrix.columns.name = "virtual-atom"
+            result[key] = matrix.apply(pd.to_numeric).sort_index(ascending=True)
+        return result
 
-    def calculate_etdac(self) -> Dict:
-        """
-    Runs the ts_psb_acore_bvirt() function to calculate the
-     electron transition density atomic contribution matrix 
-     by performing some matrix transformations in the 
-     core_MO and virt_MO pd.frames that are stored as
-     values in dictionary.
-     This function is the same as heatmap_ETDAC(...) in the
-     jupyter notebook examples and documentation
-    Arguments come directly from the object (self) and essentially
-    are thre type of data:
-    core_MO (dict): core MO and atom population matrices 
-     obtained by load_dict_data() and remove_noncontrb()
-    virt_MO (dict): virtual MO and atom population matrices 
-     obtained by load_dict_data()
-    fosce_mo_trans (dict): electronic transition
-     (oscillator strength) MO matrices obtained by the pipeline
-     (github.com/caraortizmah/x-ray_scripting_out) and 
-     formated by load_dict_data()
-    Output:
-    heatmap_raw (dict): The electron transition density 
-     atomic contribution (ETDAC) matrix in pd.frame format.
-        """
-        #calling initialize data
-        core_MO = trim_data['corepop']
-        virt_MO = trim_data['virtualpop']
-        fosce_mo_trans = self['etrans']
-        # WSM case
-        # Exploiting the fact that all data share same order of the keys (hashes)
-        heatmap_raw = {}
-        for key in virt_MO.keys(): 
-            # it can be any of the created dictionaries, they have same keys and in the same order
-            heatmap_raw.update({
-                key:
-                ts_psb_acore_bvirt(
-                    core_MO[key].T[2:].T,
-                    virt_MO[key].T[2:].T,
-                    fosce_mo_trans[key])
-                    })
-        return get_format(heatmap_raw)
 
-    def ts_psb_acore_bvirt(acore, bvirt, abcorevirt, atm_to_virtmo=False) -> DataFrame:
-        """
-    Do a matrix multiplication between the core-to-virt transition 
-    probabilities matrix and the core MO matrix, then the resulting matrix
-    is multiplied by the virtual MO matrix.
-    if atm_to_virtmo is True, then the two resulting matrices in the 
-    multiplication process are returned.
-    By the default, just the last matrix is returned.
-        """
-        abcorevirt.index = abcorevirt.index.astype('str') 
-        #to make possible the dot product in pandas, the indexes involved in each
-        #product have to "match" in name and type
-    
-        i = j = 0
-        dff = pd.DataFrame(np.zeros((acore.shape[0], abcorevirt.shape[0])), \
-                    index=acore.index, columns=abcorevirt.index)
-        for j in range(abcorevirt.shape[1]):
-            for i in range(acore.shape[1]):
-                try:
-                    dff += acore.T[i:i+1].T.dot(abcorevirt.iloc[:].T[j:j+1])
-                except:
-                    pass        
-        dff = dff/100
-        i = j = 0
-        dff2 = pd.DataFrame(np.zeros((dff.shape[0], bvirt.shape[0])), \
-                    index=dff.index, columns=bvirt.index)
-        for i in range(dff.shape[1]):
-            for j in range(bvirt.shape[1]):
-                try:
-                    dff2 += dff.T[i:i+1].T.dot(bvirt.T[j:j+1])
-                except:
-                    pass
-    
-        if atm_to_virtmo:
-            return dff, dff2
-        else:
-            return dff2
-    
-    def get_format(heatmap_raw) -> Dict:
-        """
-        Adjusts format to each raw pandas ETDAC result in the dictionary
-        """
-        for key in heatmap_raw.keys():
-            heatmap_raw[key].index.names = ['core-atom']
-            heatmap_raw[key].columns.names = ['virtual-atom']
-        
-        heatmap = {}
-        for key in heatmap_raw.keys():
-            heatmap.update({
-                key:
-                heatmap_raw[key].apply(pd.to_numeric).sort_index(ascending=True)
-                })
-        return heatmap
+# ---------------------------------------------------------------------------
+# Further operations from the notebooks, kept unchanged as available operations.
+# Not yet used by the package; crop_heatmap_byatm is needed by etdac_editprinter (step 6b).
+# ---------------------------------------------------------------------------
 
 def selecting_atm_matrix(df, atoms_list):
     """
