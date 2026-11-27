@@ -316,3 +316,4 @@ class Controler:
         check_csv_structure([(number, line.split(",")) for number, line in lines], kind, context)  # stage 2
         text = "\n".join(line for _, line in lines) + "\n"
         return pd.read_csv(io.StringIO(text), delimiter=",", index_col=index_col)  # stage 3, as the notebook
+        #returning the "standard" pd.read_csv(entry.path, delimiter=",", index_col=index_col) # enabling a vulnerability: TOCTOU atack
