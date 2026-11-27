@@ -1,158 +1,64 @@
-# Installation Guide for qm-etdac-calculator
+# Installation guide for qm_etdac_calculator
 
-## Quick Install
+## Requirements
 
-### From PyPI, mainly for users (not released yet)
+- **OS**: Linux (primary support).
+- **Python**: 3.11 or later.
+- **Inputs**: matrices produced by [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out) from ORCA XAS calculations (see [input-format.md](input-format.md)).
+
+The Python dependencies (numpy, pandas, h5py) are installed automatically.
+
+## Install
+
+### From PyPI (not released yet)
 
 ```bash
 pip install qm_etdac_calculator
 ```
 
-## From repo, mainly for developers (as a package)
-
-For development and testing:
-
-### 1. Clone repo
+### From the repository
 
 ```bash
 git clone https://github.com/caraortizmah/atomistic_oscillator_strength.git
 cd atomistic_oscillator_strength
-```
-
-### 2. Create virtual environment (recommended)
-
-```bash
 python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-python3 -m pip install --upgrade pip  # editable installs need pip >= 21.3
+source .venv/bin/activate
+pip install .
 ```
 
-Any folder name matching `venv*/` or `.venv*/` is ignored by git.
+A virtual environment (`.venv`) keeps the program and its dependencies separate from the rest of your system. Activate it with `source .venv/bin/activate` whenever you want to use the program.
 
-All build configuration and dependencies are declared in `pyproject.toml` (PEP 621).
-There is no `setup.py` or `requirements.txt`. Development uses a hashed lock file,
-`requirements-dev.txt`, generated from `pyproject.toml` with pip-tools
-(see `docs/adr/0001-pip-tools-before-uv.md`).
+To set up a development environment (locked dependencies, tests), see [development.md](development.md).
 
-Steps 2–4 are automated by `scripts/dev-setup.sh` (run once per clone, or to rebuild
-`.venv`); afterwards just activate with `source .venv/bin/activate`.
-
-### 3. Install the locked development dependencies
-
-```bash
-python3 -m pip install --require-hashes -r requirements-dev.txt
-```
-
-This installs exactly the versions recorded in the lock file, and pip refuses any
-download whose hash does not match. It contains:
-- numpy, pandas, h5py (runtime)
-- pytest and pytest-cov (testing)
-- pip-tools (to regenerate the lock file)
-
-### 4. Install the package in development (editable) mode
-
-```bash
-python3 -m pip install --no-deps -e .
-```
-
-`--no-deps` because the dependencies already came from the lock file in step 3.
-
-### Updating the lock file
-
-After changing dependencies in `pyproject.toml`:
-
-```bash
-pip-compile --extra dev --generate-hashes --allow-unsafe --strip-extras \
-    -o requirements-dev.txt pyproject.toml
-pip-sync requirements-dev.txt && python3 -m pip install --no-deps -e .
-```
-
-To upgrade all pinned versions, add `--upgrade` to `pip-compile`.
-The lock file is valid for the Python version and OS it was compiled on.
-
-
-### Cleaning generated files
-
-```bash
-deactivate                     # if .venv is active
-scripts/clean.sh --dry-run     # list what would be removed
-scripts/clean.sh               # remove caches, build output, egg-info, __pycache__
-scripts/clean.sh --all         # also remove .venv (rebuild with scripts/dev-setup.sh)
-```
-
-It never touches source code, data, outputs, `.notes/` or `.git/`.
-
-
-##  Verify installation
-
-### 1. Check package installation
+## Verify the installation
 
 ```bash
 python3 -c "from importlib.metadata import version; print(version('qm_etdac_calculator'))"
 ```
 
-Expected output: `1.2.0.dev0`
+Expected output: the installed version, e.g. `1.2.0.dev0`.
 
-### 2. Verify Command Availability
+## Run
 
-```bash
-which qm-etdac
-which qm-etdac-test
-```
-
-## Setup and check the Pipeline
-
-Now you can run by your own
-
-## Run Pipeline
-
-```bash
-qm-etdac
-```
-
-## Documentation for Pipeline usage
-
-Read  
-(...)
-
-## System Requirements
-
-- **OS**: Linux (primary support)
-- **Python**: 3.11 or later
-- **Shell**: Bash 4.0+
-- **xas-qmol-parser**: Output retuls from the repo [https://github.com/caraortizmah/x-ray_scripting_out](xas-qmol-parser)
-- **Tools**: Standard Unix utilities (grep, awk, sed, etc.)
+The `qm-etdac` command is being completed for release 1.2.0 ([examplesrun.md](examplesrun.md)). Until then, run the calculation from Python as shown in the [README](../README.md#run).
 
 ## Troubleshooting
 
-### Command Not Found
+### Command not found
 
-If `qm-etdac` or `qm-etdac-test` commands are not found after installation:
+If `qm-etdac` is not found after installation, check that the virtual environment is active and the package is installed:
 
 ```bash
-# Verify installation path
+source .venv/bin/activate
 pip show qm_etdac_calculator
-
-# Reinstall in editable mode
-pip install --force-reinstall -e .
 ```
 
-### Shell Script Permission Errors
-
-If shell scripts aren't executable:
-
-```bash
-chmod +x bin/*.sh
-```
-
-## Uninstallation
-
-To remove the package (named x-ray-quantumol-parser):
+## Uninstall
 
 ```bash
 pip uninstall qm_etdac_calculator
 ```
 
-In the future contributing.md and publishing.md
+This removes only the program. Your results in `etdac_outputs/` are your data and are never touched.
 
 Enjoy! :)
