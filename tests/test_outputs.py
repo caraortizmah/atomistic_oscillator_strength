@@ -9,11 +9,19 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
+import h5py
+import numpy as np
+import pandas as pd
 import pytest
+from conftest import POP_INDEX, OSC_INDEX, REFERENCE_H5
 
+import notebook_reference as nb
 from qm_etdac_calculator.errors import OutputError
-from qm_etdac_calculator.outputs import DEFAULT_STEM, OutputPaths, prepare_outputs
+from qm_etdac_calculator.etdac_operations import Operations
+from qm_etdac_calculator.gate_controler import Controler, default_data_root
+from qm_etdac_calculator.outputs import DEFAULT_STEM, OutputPaths, prepare_outputs, write_etdac_h5
 
 STEM = DEFAULT_STEM
 
@@ -181,3 +189,154 @@ def test_rotation_never_overwrites_even_in_a_race(tmp_path: Path, monkeypatch: p
         prepare_outputs(tmp_path)
     assert (tmp_path / f"{STEM}_oldversion1.h5").read_text() == "other run"
     assert (tmp_path / f"{STEM}.h5").read_text() == f"{STEM}.h5"  # the original is still there
+
+
+
+# --- writing the .h5 file (step 5e, commit 2) ----------------------------------------------
+
+
+def _h5_content(path: Path) -> dict[str, Any]:
+    """Everything a reader can see in an ETDAC file: groups, dataset dtype, values, compression, attributes."""
+    with h5py.File(path, "r") as f:
+        return {
+            name: {
+                "dtype": f[name]["ETDAC_matrix"].dtype,
+                "records": f[name]["ETDAC_matrix"][()],
+                "compression": f[name]["ETDAC_matrix"].compression,
+                "attrs": dict(f[name].attrs),
+            }
+            for name in f
+        }
+
+
+def _assert_same_content(actual: Path, expected: Path) -> None:
+    got, want = _h5_content(actual), _h5_content(expected)
+    assert list(got) == list(want)
+    for name in want:
+        assert got[name]["dtype"] == want[name]["dtype"], name
+        assert np.array_equal(got[name]["records"], want[name]["records"]), name
+        assert got[name]["compression"] == want[name]["compression"] == "gzip", name
+        assert got[name]["attrs"] == want[name]["attrs"], name
+
+
+def _small_results() -> dict[str, pd.DataFrame]:
+    def frame(values: list[list[float]]) -> pd.DataFrame:
+        return pd.DataFrame(
+            values,
+            index=pd.Index([0, 1], name="core-atom"),
+            columns=pd.Index([0, 1], name="virtual-atom"),
+        )
+
+    return {"f10": frame([[0.09, 0.21], [0.06, 0.14]]), "f11": frame([[0.0, 1e-6], [2.5, 0.0]])}
+
+
+def test_written_file_has_the_notebook_layout(tmp_path: Path) -> None:
+    """Differential test: same groups, dtypes, values, compression and attributes as the notebook's save."""
+    results = _small_results()
+    nb.save_ETDAC_matrix(results, data_set_name=str(tmp_path / "notebook.h5"))
+    paths = prepare_outputs(tmp_path / "out")
+    write_etdac_h5(results, paths.h5)
+    _assert_same_content(paths.h5, tmp_path / "notebook.h5")
+
+
+@pytest.mark.golden
+def test_phe_tyr_written_through_the_package_equals_the_reference(phe_tyr_dir: Path, tmp_path: Path) -> None:
+    """End to end except orchestration: package loader, calculation, writer; byte-level content of the reference."""
+    controler = Controler(default_data_root(phe_tyr_dir))
+    core = controler.load_dict_data(phe_tyr_dir / "resA_MOcore_list.log", POP_INDEX)
+    virt = controler.load_dict_data(phe_tyr_dir / "resB_MOvirt_list.log", POP_INDEX)
+    osc = controler.load_dict_data(phe_tyr_dir / "corevirt_fosce_AB_list.log", OSC_INDEX)
+    paths = prepare_outputs(tmp_path / "etdac_outputs")
+    write_etdac_h5(Operations().etdac_batch(core, virt, osc), paths.h5)
+    _assert_same_content(paths.h5, REFERENCE_H5)
+
+
+def test_successful_write_leaves_only_the_result(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    paths = prepare_outputs(tmp_path)
+    write_etdac_h5(_small_results(), paths.h5)
+    assert _names(tmp_path) == {f"{STEM}.h5"}
+    assert any("wrote 2 sample(s) to" in r.getMessage() for r in caplog.records if r.levelno == logging.INFO)
+
+
+def test_existing_target_is_never_overwritten(tmp_path: Path) -> None:
+    target = tmp_path / f"{STEM}.h5"
+    target.write_text("previous result")
+    with pytest.raises(OutputError, match="already exists"):
+        write_etdac_h5(_small_results(), target)
+    assert target.read_text() == "previous result"
+    assert _names(tmp_path) == {f"{STEM}.h5"}  # no temporary file left behind
+
+
+def test_existing_target_fails_before_anything_is_written(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail fast: no time spent writing a large file that can never be published."""
+    import qm_etdac_calculator.outputs as outputs
+
+    (tmp_path / f"{STEM}.h5").write_text("previous result")
+    monkeypatch.setattr(outputs, "_write_groups", lambda *a: pytest.fail("wrote despite an existing target"))
+    with pytest.raises(OutputError, match="never overwritten"):
+        write_etdac_h5(_small_results(), tmp_path / f"{STEM}.h5")
+
+
+def test_target_appearing_during_the_write_is_not_overwritten(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Another run publishes the same name while this one is writing: this run fails, the other result survives."""
+    import qm_etdac_calculator.outputs as outputs
+
+    target = tmp_path / f"{STEM}.h5"
+    real = outputs._write_groups
+
+    def racing(results: Any, temporary: Path) -> None:
+        real(results, temporary)
+        target.write_text("other run")
+
+    monkeypatch.setattr(outputs, "_write_groups", racing)
+    with pytest.raises(OutputError, match="already exists"):
+        write_etdac_h5(_small_results(), target)
+    assert target.read_text() == "other run"
+    assert _names(tmp_path) == {f"{STEM}.h5"}
+
+
+def test_failed_write_leaves_nothing_behind(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A crash while writing must not leave a half-written result or a temporary file."""
+    import qm_etdac_calculator.outputs as outputs
+
+    def crash(results: Any, temporary: Path) -> None:
+        temporary.write_bytes(b"half")
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(outputs, "_write_groups", crash)
+    with pytest.raises(RuntimeError, match="disk full"):
+        write_etdac_h5(_small_results(), tmp_path / f"{STEM}.h5")
+    assert _names(tmp_path) == set()
+
+
+def test_temporary_file_is_hidden_and_in_the_same_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Same folder: os.link cannot cross filesystems. Hidden name: never mistaken for a result."""
+    import qm_etdac_calculator.outputs as outputs
+
+    seen: list[Path] = []
+    real = outputs._write_groups
+
+    def spy(results: Any, temporary: Path) -> None:
+        seen.append(temporary)
+        real(results, temporary)
+
+    monkeypatch.setattr(outputs, "_write_groups", spy)
+    write_etdac_h5(_small_results(), tmp_path / f"{STEM}.h5")
+    assert seen[0].parent == tmp_path
+    assert seen[0].name.startswith(f".{STEM}.h5.") and seen[0].name.endswith(".tmp")
+
+
+def test_empty_results_are_a_program_error(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="no results to write"):
+        write_etdac_h5({}, tmp_path / f"{STEM}.h5")
+    assert _names(tmp_path) == set()
+
+
+@pytest.mark.parametrize("key", ["a/b", "", "f 10", "../x"])
+def test_sample_keys_must_be_valid_hashes(tmp_path: Path, key: str) -> None:
+    """A '/' in a key would create nested groups; keys come from validated hashes, so this is a program error."""
+    results = _small_results()
+    results[key] = results.pop("f10")
+    with pytest.raises(ValueError, match="invalid sample hash"):
+        write_etdac_h5(results, tmp_path / f"{STEM}.h5")
+    assert _names(tmp_path) == set()
