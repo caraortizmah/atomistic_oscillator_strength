@@ -51,11 +51,18 @@ project uses [Semantic Versioning](https://semver.org/).
   never silently overwritten) before opening any CSV; logs `loaded N entries` (INFO).
   Reproduces the notebook loader exactly on all 52 Phe-Tyr samples. `Controler`,
   `default_data_root` and `InputError` exported from the package.
+- `validation.py` (ADR 0005, step 5d): `check_hash` (1 to 64 ASCII letters or digits, explicit
+  pattern with `fullmatch`; `isalnum()`/`\w` would accept non-ASCII) applied in the first pass of
+  `load_dict_data`; `check_same_hashes` (every sample in all three inputs, any order).
+  Tests in `tests/test_validation.py`.
 - ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
 - `docs/input-format.md` and ADR 0005: the 2.5 rounding tolerance covers systems of up to 47 atoms with one decimal; larger systems need more precise values (user's responsibility).
 
 ### Changed
 
+- `Operations.etdac_batch` checks that the three inputs contain the same samples: a sample missing
+  from the virtual input was silently dropped before, one missing from the core input raised a bare
+  `KeyError`; both are now an `InputError`.
 - List-file reader: a lone `\r` in a file that also uses `\n` or `\r\n` line endings is now an
   error (not interpreted); `\n` mixed with `\r\n` stays a warning. The warning for spaces in
   paths names the risk (shell commands and tools that do not quote paths).
