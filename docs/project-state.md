@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-27 - Checkpoint 5c (reading inputs)_
+_Last updated: 2026-11-27 - Checkpoint 5d (input validation)_
 
 ## How to resume
 
@@ -12,10 +12,8 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0–4 are committed; step 5 is split into 5a–5f; 5a (calculation), 5b (logging) and 5c (reading inputs with the path policy) are done: `pytest` gives 102 passed, including the golden test.
-- `import qm_etdac_calculator` works and exports the operations. `gate_controler.py`,
-  `config.py`, `etdac_calculator.py`, `cli.py` and the `qm-etdac` command are still broken
-  (notebook leftovers); nothing imports them until 5c–5f and step 6.
+- The packaging plan is agreed. Steps 0–4 are committed; step 5 is split into 5a–5f; 5a (calculation), 5b (logging), 5c (reading inputs with the path policy) and 5d (input validation) are done: `pytest` gives 241 passed, including the golden test. Next: 5e (writing outputs).
+- `import qm_etdac_calculator` works and exports the operations and the input reader (`Controler`). `config.py`, `etdac_calculator.py`, `cli.py` and the `qm-etdac` command are still broken (notebook leftovers); nothing imports them until 5f and step 6.
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces
   `popmatrices/Bigscale/data_etdac_matrix.h5` exactly (checked on samples f00 and f13).
   This is the golden reference.
@@ -51,6 +49,12 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 | D18 | Output `.h5` files carry provenance: program, version, UTC time, SHA-256 of every input. | ADR 0006 |
 | D19 | Logging: console INFO by default, DEBUG with `--verbose`/`--debug`; a DEBUG log file next to every run's results (never overwritten); no `NullHandler`, so warnings stay visible when the package is used without configuration; `SafeFormatter` + `untrusted()` against log injection. | here |
 | D20 | List-file reading: strict structure, tolerated editing leftovers always reported (BOM, `\r\n`/`\r`, mixed `\n`+`\r\n`, blank lines, spaces inside paths); lone `\r` mixed with other endings, control/invisible characters and duplicate hashes are errors; the whole list is checked before any CSV is opened; format errors point to `docs/input-format.md`. | ADR 0005 |
+| D21 | CSV reading in three stages: the bytes are read once (no gap between check and parse: TOCTOU), the raw text is checked (same line rules as list files, plain split on commas, no quoting, no spaces around cells, exact header, unique integer labels, rows as long as the header), and only then pandas parses the checked text exactly as the notebook did. Every problem is an `InputError` naming list file, line, hash and CSV file. | ADR 0005 |
+| D22 | Values: numbers must match an explicit pattern before conversion and be finite (no `nan`, `inf`, text, formulas, `1_000`, non-ASCII digits); populations and oscillator strengths >= 0 (`-0.0` accepted); `sym`/`lvl` 1 to 8 ASCII letters; `.5` and `5.` read as 0.5 and 5.0 with one warning per file. | ADR 0005 |
+| D23 | Samples are paired by hash, not by position: the three inputs must contain the same set of hashes; a hash is 1 to 64 ASCII letters or digits, unique within a list file. This hash policy is temporary (marked "Temporary hash policy") until multi-file runs are designed. | ADR 0005 |
+| D24 | Population warnings: one warning per CSV file combining values above 100 % and MO column sums above 100 % ("at the edge" up to 102.5 %, "beyond the rounding tolerance" above); sums with `math.fsum` plus a 1e-9 tolerance; sums below 100 % are normal and give no warning; oscillator strengths have no 100 limit. | ADR 0005 |
+| D25 | Size limits: list files up to 10 000 entries (10 001 to 10 100: warning to split the samples; more: error) and at most 3 MB; CSV files at most 50 MB; files read with at most limit + 1 bytes; errors name the size policy, not a program error. Fixed in 1.2.0, configurable later. | ADR 0005 |
+| D26 | Scope rule (80:20): the non-critical remainder of a change goes to the Future list instead of being built now, unless it is urgent or critical for security or code structure. | here |
 
 ## Plan
 
@@ -64,7 +68,7 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
   - [x] 5a. Calculation: `etdac_operations.py` rewritten (`etdac_matrix`, `Operations.etdac_batch`, `return_transition`); `__init__.py` imports only working modules; 20 tests green
   - [x] 5b. Logging foundation (`logging_setup.py`: levels, log file, `untrusted()`, `SafeFormatter`); "non-contributing core MOs removed" report and run summary in `etdac_batch`; "Logging and debugging" in `docs/development.md`
   - [x] 5c. Reading inputs: `errors.InputError`; `parse_list_file` (strict format, tolerated leftovers reported); `Controler` + `default_data_root` (path policy, ADR 0003/0004); `load_dict_data` (whole list checked, duplicates rejected, then CSVs read; reproduces the notebook loader on 52 samples); `docs/input-format.md`
-  - [ ] 5d. Input validation, rule by rule (ADR 0005, "Required tests"): hash pattern; the same hashes in all three files; CSV structure (today a malformed CSV fails with a raw pandas error, and text or NaN in a number column passes silently: every CSV problem must become an `InputError` naming hash and file); CSV values and the > 100 % warnings; size limits
+  - [x] 5d. Input validation (ADR 0005): hash pattern and the same hashes in all three inputs; CSV read in three stages (bytes once, raw text checked, then parsed) with structure and value rules; population warnings; size limits; the hash policy marked temporary; 241 tests green
   - [ ] 5e. Writing outputs: `_oldversionN` rotation, atomic write, provenance (ADR 0003/0006)
   - [ ] 5f. `Scheme` orchestration; remove notebook leftovers from `etdac_calculator.py`, `gate_controler.py`, `config.py`; end-to-end test through the package loader
 - [ ] 6. CLI as documented, inside the package
