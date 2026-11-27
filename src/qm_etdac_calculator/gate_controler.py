@@ -41,11 +41,19 @@ but through the path policy) and returns {hash: DataFrame}. A duplicate hash in 
 is an error here, because a dict would silently keep only the last one. Step 5d adds the
 hash pattern (validation.check_hash) to the same first pass, before any CSV is opened.
 
-The same hashes in all three files, and the CSV content, are validated in step 5d (ADR 0005).
+Step 5d, commit 2: CSV files are read in three stages (ADR 0005, "Reading CSV files"):
+1. the file's bytes are read once; everything below works on that copy (no gap between
+   checking and parsing);
+2. the text is checked as plain lines and cells, with the same line rules as list files
+   (read_text_lines) and a plain split on commas, before pandas interprets anything:
+   pandas would otherwise decide silently (duplicate labels renamed, empty cells to NaN,
+   quoted cells with commas or line breaks accepted);
+3. only then pandas parses the same text exactly as the notebook did.
 """
 
 from __future__ import annotations
 
+import io
 import logging
 import re
 from pathlib import Path
@@ -53,13 +61,12 @@ from typing import NamedTuple
 
 import pandas as pd
 
-from .errors import InputError
+from .errors import FORMAT_HINT, InputError
 from .logging_setup import untrusted
-from .validation import check_hash
+from .validation import check_csv_structure, check_hash
 
 logger = logging.getLogger(__name__)
 
-FORMAT_HINT = "(see docs/input-format.md)"
 _BOM = b"\xef\xbb\xbf"
 _LINE_BREAK = re.compile(r"\r\n|\r|\n")
 _BLANK = re.compile(r"[ \t]*")
@@ -99,19 +106,19 @@ def _check_line_endings(text: str, where: str) -> None:
         logger.info("%s uses classic Mac line endings (\\r)", where)
 
 
-def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
+def read_text_lines(data: bytes, where: str) -> list[tuple[int, str]]:
     """
-    Parse the raw bytes of a list file into entries, in file order.
+    Decode a text file and split it into lines, with the rules shared by list files and CSV files.
+
+    UTF-8 only (BOM removed, INFO); line endings checked (_check_line_endings); blank or
+    whitespace-only lines ignored with a WARNING; control and invisible characters rejected.
 
     Args:
         data: the file content as bytes.
-        name: the file name, used in messages.
+        where: how to name the file in messages (already made safe with untrusted()).
     Returns:
-        One ListEntry per non-blank line.
-    Raises:
-        InputError: the file is not valid UTF-8, has a malformed line, or has no entries.
+        (line number, line) for every non-blank line; line numbers are those of the file.
     """
-    where = untrusted(name)
     if data.startswith(_BOM):
         data = data[len(_BOM) :]
         logger.info("%s starts with a UTF-8 BOM; removed", where)
@@ -125,16 +132,15 @@ def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
     if lines and lines[-1] == "":
         lines.pop()  # the final line break is normal, not a blank line
 
-    entries: list[ListEntry] = []
+    kept: list[tuple[int, str]] = []
     for number, line in enumerate(lines, start=1):
-        prefix = f"{where} line {number}"
         if _BLANK.fullmatch(line):
-            logger.warning("%s: blank line ignored", prefix)
+            logger.warning("%s line %d: blank line ignored", where, number)
             continue
         forbidden = _FORBIDDEN.search(line)
         if forbidden:
             raise InputError(
-                f"{prefix}: forbidden character {untrusted(forbidden.group())} at position "
+                f"{where} line {number}: forbidden character {untrusted(forbidden.group())} at position "
                 f"{forbidden.start() + 1} {FORMAT_HINT}"
             )
         fields = line.split(",")
