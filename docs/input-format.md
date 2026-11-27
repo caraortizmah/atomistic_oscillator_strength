@@ -26,6 +26,7 @@ f12,inputs/resA_MOcore_AB_3.7A_1-26.csv
 - **Hash**: letters and digits only (`[A-Za-z0-9]`, up to 64 characters), unique within the
   file. `f<number>` is a convention, not a rule. The same hashes must appear in all three
   list files (in any order): samples are paired by hash, not by line position.
+- **Keep hashes short**: at most 9 characters is recommended (e.g. `f0001`, enough for 10 000 samples with room to spare). Short hashes keep the messages and logs readable and the list files small.
 - **Path**: relative to the folder of the list file. Absolute paths are not allowed. The
   path must stay inside the data root (by default the parent folder of the list files'
   folder; ADR 0003, ADR 0004) and point to an existing file.
@@ -94,3 +95,13 @@ letters-only `sym`/`lvl`, and the warnings for population sums above 100 %).
 Populations are expected in percent. A single value should not exceed 100 %, and the sum of one MO's populations over the atoms should not exceed 100 %; above it the program warns ("at the edge" up to 102.5 %, "beyond the rounding tolerance" above). All of these findings for one file come as **one warning** naming the file, the counts and the first value or column, so you know where to look. Sums below 100 % are normal (the parser does not write every small contribution) and give no warning. Oscillator strengths have no 100 limit.
 
 The 2.5 tolerance covers the rounding of values printed with **one decimal** for systems of **up to 47 atoms** (each value can be off by up to 0.05; 47 × 0.05 = 2.35). For larger systems the rounding error grows with the number of atoms (N × 0.05; 100 atoms: up to 5.0) and can trigger the "beyond rounding tolerance" warning even for correct data. **Providing values with enough precision is the user's responsibility**: for systems larger than 47 atoms, export the populations with more decimals.
+
+## Size limits
+
+The limits protect against resource exhaustion (an input so large that the program runs out of memory or time). They are a policy, not a program error: a file that hits one is not damaged, it is larger than this version accepts. The limits are fixed in this version and may become configurable later (ADR 0005).
+
+| Input | Accepted | Warning | Error |
+|-------|----------|---------|-------|
+| entries in a list file | up to 10 000 | 10 001 to 10 100: accepted, but split the samples into runs of at most 10 000 | more than 10 100 |
+| size of a list file | up to 3 MB (a typical line is about 45 bytes: 10 000 entries take about 0.5 MB) | none | larger than 3 MB, rejected without reading the whole file |
+| size of a CSV file | up to 50 MB (the Phe-Tyr CSV files are at most 5.4 kB) | none | larger than 50 MB, rejected without reading the whole file |

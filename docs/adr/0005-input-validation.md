@@ -1,6 +1,6 @@
 # ADR 0005: Input validation: allowlist, fail closed
 
-- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below; number format, `-0.0`, abbreviated decimals; population warnings: one per file, float tolerance, sums below 100 %)
+- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below; number format, `-0.0`, abbreviated decimals; population warnings: one per file, float tolerance, sums below 100 %; size limits: list-file byte cap of 3 MB, warning zone of 10 001 to 10 100 entries, capped reading)
 - Date: 2026-11-26
 
 ## Context
@@ -25,7 +25,7 @@ Errors:
 | Populations | ≥ 0 (a negative population is impossible in this field); `-0.0` is zero and accepted |
 | Oscillator strengths | ≥ 0 |
 | `sym`, `lvl` text columns | match `^[A-Za-z]{1,8}$` (letters only, e.g. `C`, `atom`, `s`, `lvlMO`) |
-| Size limits | at most 10 000 entries per list file; at most 50 MB per CSV file (against resource exhaustion). Fixed (mandatory) in 1.2.0; see Consequences for making them configurable |
+| Size limits | at most 10 000 entries per list file (10 001 to 10 100: WARNING, see below; more: error); at most 3 MB per list file; at most 50 MB per CSV file (against resource exhaustion). Fixed (mandatory) in 1.2.0; see Consequences for making them configurable |
 
 Warnings (the run continues, the warning is logged, the data's veracity should be checked):
 
