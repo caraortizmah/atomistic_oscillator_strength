@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-26 - Checkpoint 4 (tests, red)_
+_Last updated: 2026-11-27 - Checkpoint 5a (calculation green)_
 
 ## How to resume
 
@@ -12,9 +12,11 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0–3 are committed; step 4 (tests, red) is in review.
-- Code is unchanged since `0d75b23`. The package installs, but `import qm_etdac_calculator`
-  fails: notebook leftovers run at import time and there are 59 undefined names.
+- The packaging plan is agreed. Steps 0–4 are committed; step 5 is split into 5a–5f, and
+  5a (calculation) is done: `pytest` gives 20 passed, including the golden test.
+- `import qm_etdac_calculator` works and exports the operations. `gate_controler.py`,
+  `config.py`, `etdac_calculator.py`, `cli.py` and the `qm-etdac` command are still broken
+  (notebook leftovers); nothing imports them until 5c–5f and step 6.
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces
   `popmatrices/Bigscale/data_etdac_matrix.h5` exactly (checked on samples f00 and f13).
   This is the golden reference.
@@ -56,8 +58,14 @@ pre-commit, GitHub Actions CI gating on them, a README under one page, and a CHA
 - [x] 1. Hygiene: `.gitignore` venv patterns; delete `setup.py` and `requirements.txt`
 - [x] 2. `pyproject.toml`: runtime deps, Python >= 3.11, single-source version; pip-tools lock; dev environment walkthrough; fix the "This installs" list in `docs/installation.md`
 - [x] 3. `git mv` package into `src/` (pure move)
-- [ ] 4. Tests (red): hand-computed, notebook-equivalence, golden (Phe–Tyr data committed in `tests/data/phe_tyr/`) *(in review)*
-- [ ] 5. Core: logging; `Operations` / `etdac_matrix` / `etdac_batch` (tests green); I/O with path and output policy; input validation (ADR 0005); provenance (ADR 0006); `Scheme` orchestration; end-to-end test through the package loader
+- [x] 4. Tests (red): hand-computed, notebook-equivalence, golden (Phe–Tyr data committed in `tests/data/phe_tyr/`)
+- [ ] 5. Core, in small diffs (one commit per bullet):
+  - [x] 5a. Calculation: `etdac_operations.py` rewritten (`etdac_matrix`, `Operations.etdac_batch`, `return_transition`); `__init__.py` imports only working modules; 20 tests green
+  - [ ] 5b. Logging foundation; includes the "non-contributing core MOs removed" report (replaces the old `report_trimmed`)
+  - [ ] 5c. Reading inputs: `Controler` loads list files with the path policy (ADR 0003/0004)
+  - [ ] 5d. Input validation, rule by rule (ADR 0005, "Required tests")
+  - [ ] 5e. Writing outputs: `_oldversionN` rotation, atomic write, provenance (ADR 0003/0006)
+  - [ ] 5f. `Scheme` orchestration; remove notebook leftovers from `etdac_calculator.py`, `gate_controler.py`, `config.py`; end-to-end test through the package loader
 - [ ] 6. CLI as documented, inside the package
 - [ ] 6b. `etdac_editprinter` as functions; atom-range config
 - [ ] 7. Vectorised `etdac_matrix` (was `ts_psb_acore_bvirt`; spec + failing test provided)
