@@ -356,6 +356,7 @@ class Controler:
         name = untrusted(Path(list_file).name)
 
         # 1. check the whole list before opening any CSV file (fail fast, cheapest first)
+        # Temporary hash policy: unique within this list file only (see validation.py)
         first_line: dict[str, int] = {}
         for entry in entries:
             check_hash(entry.hash, f"{name} line {entry.line}")

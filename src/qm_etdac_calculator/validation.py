@@ -53,7 +53,7 @@ from .logging_setup import untrusted
 
 logger = logging.getLogger(__name__)
 
-HASH_PATTERN = re.compile(r"[A-Za-z0-9]{1,64}")
+HASH_PATTERN = re.compile(r"[A-Za-z0-9]{1,64}")  # Temporary hash policy: see the module docstring
 LABEL_PATTERN = re.compile(r"[0-9]+")  # non-negative integer, ASCII digits only
 HEADER_PREFIX = {"population": ["num-1", "sym", "lvl"], "oscillator": ["virt\\core"]}
 NUMBER_PATTERN = re.compile(r"-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
