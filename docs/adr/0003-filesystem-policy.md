@@ -1,6 +1,6 @@
 # ADR 0003: Filesystem policy: least privilege, never overwrite
 
-- Status: accepted; default data root amended by ADR 0004; revised 2026-11-27 during step 5e (rotation details: number, pairs, warning, no-overwrite rename, output name and folder checks; see the implementation note)
+- Status: accepted; default data root amended by ADR 0004; revised 2026-11-27 during step 5e (rotation details: number, pairs, warning, no-overwrite rename, output name and folder checks; atomic write published with a hard link instead of a rename; see the implementation notes)
 - Date: 2026-11-26
 
 ## Context
@@ -50,3 +50,8 @@ and its contents are user data and are never touched.
   - Every rotation logs one WARNING naming the existing files and their new names: the existing result may come from another job or system, and the program cannot tell yet (a real solution is in the Future list of `docs/project-state.md`).
   - Renames never overwrite: `os.link()` fails if the new name exists (`os.rename()` would silently replace it on Linux), then the old name is removed. A second run racing for the same name gets an `OutputError`.
   - The output folder must be a real folder, not a file and not a symbolic link (a planted link would redirect the results, CWE-59). The output name (stem) is 1 to 64 ASCII letters, digits, `_` or `-`, starting with a letter or digit: no path or extension can be passed through it.
+- Implementation note, step 5e commit 2 (`outputs.write_etdac_h5`): the atomic write is "write to a temporary file, then publish", but publishing uses `os.link()` instead of a rename, because a rename would replace a result that appeared meanwhile (e.g. from another run). In detail:
+  - The `.h5` layout is the notebook's, unchanged: one group `sample_<hash>` per sample, dataset `ETDAC_matrix` (`DataFrame.to_records(index=True)`, gzip), attributes `hash`, `column_name`, `index_name`. A differential test compares it with the notebook's own `save_ETDAC_matrix`; the golden test writes the 52 Phe-Tyr samples through the package and compares them with the reference file.
+  - The temporary file has a hidden, random name in the same folder (`.<name>.<random>.tmp`, created with mode `"x"`); a hard link cannot cross filesystems. It is flushed to disk (`fsync`) before it is published, and removed in every case, also after a failure, so no half-written result or temporary file is left.
+  - An existing target is rejected before anything is written (fail fast).
+  - Known limits: filesystems without hard links (FAT, some network mounts) cannot publish (goes with the HPC item in `docs/project-state.md`); the folder entry itself is not fsynced, so after a power cut the new name may be lost, but never a half-written file under it.

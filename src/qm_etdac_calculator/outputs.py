@@ -19,6 +19,19 @@ results) and `<stem>.log` (the run log, opened by the CLI in step 6). prepare_ou
   the same name gets an OutputError instead of destroying a result.
 
 The returned paths do not exist yet; the results are written in step 5e, commit 2.
+
+Step 5e, commit 2: write_etdac_h5() writes the results with the notebook's layout (one group
+`sample_<hash>` per sample, dataset `ETDAC_matrix` from DataFrame.to_records(index=True),
+gzip compression, attributes `hash`, `column_name`, `index_name`), so existing readers and
+notebooks keep working. Unlike the notebook (h5py mode "w", which replaces an existing file),
+it never overwrites and never leaves a half-written result:
+
+1. the file is written under a hidden temporary name in the same folder
+   (`.<name>.<random>.tmp`, created with mode "x"), then flushed to disk (fsync);
+2. it is published with os.link(), which fails if the final name exists (a result that
+   appeared meanwhile, e.g. from another run, survives and this run gets an OutputError);
+3. the temporary name is removed in every case, also when writing fails.
+The temporary file must be in the same folder because a hard link cannot cross filesystems.
 """
 
 from __future__ import annotations
@@ -26,11 +39,17 @@ from __future__ import annotations
 import logging
 import os
 import re
+import secrets
+from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
+import h5py
+import pandas as pd
+
 from .errors import OutputError
 from .logging_setup import untrusted
+from .validation import HASH_PATTERN
 
 logger = logging.getLogger(__name__)
 
@@ -105,3 +124,51 @@ def prepare_outputs(output_dir: Path | str = DEFAULT_OUTPUT_DIR, stem: str = DEF
             ", ".join(untrusted(p.name) for p in kept),
         )
     return OutputPaths(h5=folder / f"{stem}.h5", log=folder / f"{stem}.log")
+
+
+def _write_groups(results: Mapping[str, pd.DataFrame], temporary: Path) -> None:
+    """Write every sample into a new file (mode "x": the temporary name must not exist)."""
+    with h5py.File(temporary, "x") as file:
+        for hash_, frame in results.items():
+            group = file.create_group(f"sample_{hash_}")
+            group.create_dataset("ETDAC_matrix", data=frame.to_records(index=True), compression="gzip")
+            group.attrs["hash"] = hash_
+            group.attrs["column_name"] = frame.columns.name
+            group.attrs["index_name"] = frame.index.name
+
+
+def write_etdac_h5(results: Mapping[str, pd.DataFrame], path: Path) -> None:
+    """
+    Write the ETDAC matrices to a new .h5 file at `path`, atomically and without overwriting.
+
+    Args:
+        results: {hash: ETDAC matrix}, e.g. from Operations.etdac_batch; written in this order.
+        path: the file to create (from prepare_outputs); must not exist.
+    Raises:
+        OutputError: `path` exists, or appeared while the file was being written.
+        ValueError: no results, or a key that is not a valid hash (a program error: the
+            keys come from validated list files).
+    """
+    if not results:
+        raise ValueError("no results to write")
+    for hash_ in results:
+        if HASH_PATTERN.fullmatch(hash_) is None:
+            raise ValueError(f"invalid sample hash {untrusted(hash_)}")
+    if path.exists() or path.is_symlink():
+        raise OutputError(f"{untrusted(path.name)} already exists in {untrusted(str(path.parent))}; it is never overwritten")
+
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
+    try:
+        _write_groups(results, temporary)
+        with temporary.open("rb") as handle:
+            os.fsync(handle.fileno())  # on disk before it gets its final name
+        try:
+            os.link(temporary, path)  # FileExistsError if the name appeared meanwhile: never overwrites
+        except FileExistsError:
+            raise OutputError(
+                f"{untrusted(path.name)} appeared in {untrusted(str(path.parent))} while this run was writing it "
+                f"(another run?); it already exists and is never overwritten"
+            ) from None
+    finally:
+        temporary.unlink(missing_ok=True)
+    logger.info("wrote %d sample(s) to %s", len(results), untrusted(str(path)))
