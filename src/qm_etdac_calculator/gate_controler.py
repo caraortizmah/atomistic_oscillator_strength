@@ -18,14 +18,30 @@ tolerant only about harmless editing leftovers, which it reports:
 - Exactly two non-empty fields; leading or trailing spaces in a field are an error;
   spaces inside a path work in Python (no shell is involved) but give a WARNING.
 
+Step 5c, bullet 2: the path policy (ADR 0003, ADR 0004). A Controler may read only inside
+its data root:
+
+- the list file itself must resolve inside the data root;
+- absolute paths in a list file are rejected, even if they point inside the root;
+- relative paths resolve against the list file's own folder, never the working folder;
+- resolving follows symlinks, so a link that points outside the root is rejected;
+- "inside" compares whole path components (Path.is_relative_to), never string prefixes
+  (a sibling "root2" must not pass as being inside "root");
+- the target must be an existing regular file.
+
+Known limit: a file could be swapped between this check and the read (TOCTOU). For a
+local single-user tool this is accepted; the reader opens the resolved path, not the
+original string.
+
 Hash content (pattern, duplicates, the same hashes in all three files) is validated in
-step 5d; the path policy (ADR 0003/0004) is bullet 2 of step 5c.
+step 5d.
 """
 
 from __future__ import annotations
 
 import logging
 import re
+from pathlib import Path
 from typing import NamedTuple
 
 from .errors import InputError
@@ -117,3 +133,86 @@ def parse_list_file(data: bytes, name: str) -> list[ListEntry]:
     if not entries:
         raise InputError(f"{where} has no entries")
     return entries
+
+
+class ResolvedEntry(NamedTuple):
+    """One list-file entry whose path passed the path policy: an absolute, resolved Path."""
+
+    line: int
+    hash: str
+    path: Path
+
+
+def default_data_root(logs_path: Path | str) -> Path:
+    """
+    The default data root: the parent of the logs folder (ADR 0004).
+
+    Temporary rule until newFY_1-26 is renamed; then a new ADR returns the default to the
+    logs folder itself and exposes --data-root. Kept in one function so the change is one line.
+    """
+    return Path(logs_path).resolve(strict=True).parent
+
+
+class Controler:
+    """
+    Reads input files, only from inside its data root (ADR 0003, ADR 0004).
+
+    Attributes:
+        data_root: absolute, resolved folder; nothing outside it is ever read.
+    """
+
+    def __init__(self, data_root: Path | str) -> None:
+        try:
+            root = Path(data_root).resolve(strict=True)
+        except (OSError, RuntimeError):
+            raise InputError(f"data root not found: {untrusted(str(data_root))}") from None
+        if not root.is_dir():
+            raise InputError(f"data root is not a folder: {untrusted(str(root))}")
+        self.data_root = root
+
+    def _is_inside(self, path: Path) -> bool:
+        return path.is_relative_to(self.data_root)  # whole components, not string prefixes
+
+    def read_list_file(self, list_file: Path | str) -> list[ResolvedEntry]:
+        """
+        Read a list file and apply the path policy to every entry.
+
+        Returns:
+            The entries in file order, each with its resolved, checked path.
+        Raises:
+            InputError: list file missing or outside the data root, malformed line
+                (see parse_list_file), or an entry that breaks the path policy.
+        """
+        try:
+            list_path = Path(list_file).resolve(strict=True)
+        except (OSError, RuntimeError):
+            raise InputError(f"list file not found: {untrusted(str(list_file))}") from None
+        if not self._is_inside(list_path):
+            raise InputError(
+                f"list file is outside the data root {untrusted(str(self.data_root))}: {untrusted(str(list_path))}"
+            )
+        if not list_path.is_file():
+            raise InputError(f"list file is not a regular file: {untrusted(str(list_path))}")
+
+        base = list_path.parent
+        resolved_entries: list[ResolvedEntry] = []
+        for entry in parse_list_file(list_path.read_bytes(), list_path.name):
+            prefix = f"{untrusted(list_path.name)} line {entry.line}"
+            written = Path(entry.path)
+            if written.is_absolute():
+                raise InputError(f"{prefix}: absolute paths are not allowed: {untrusted(entry.path)}")
+            try:
+                resolved = (base / written).resolve(strict=True)  # follows symlinks
+            except FileNotFoundError:
+                raise InputError(f"{prefix}: file not found: {untrusted(entry.path)}") from None
+            except (OSError, RuntimeError):
+                raise InputError(f"{prefix}: cannot resolve path (symlink loop?): {untrusted(entry.path)}") from None
+            if not self._is_inside(resolved):
+                raise InputError(
+                    f"{prefix}: path is outside the data root {untrusted(str(self.data_root))}: {untrusted(entry.path)}"
+                )
+            if not resolved.is_file():
+                raise InputError(f"{prefix}: not a regular file: {untrusted(entry.path)}")
+            resolved_entries.append(ResolvedEntry(entry.line, entry.hash, resolved))
+        logger.debug("%s: %d entries passed the path policy", untrusted(list_path.name), len(resolved_entries))
+        return resolved_entries
