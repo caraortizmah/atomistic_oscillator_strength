@@ -1,50 +1,72 @@
 # atomistic_oscillator_strength
 
-This repo is a collection of notebooks that explains how to calculate the [electron transition density atomic contribution matrix (ETDAC)](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c) from the [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out) outputs.
+Calculates the **electron transition density atomic contribution (ETDAC) matrix** from X-ray absorption spectroscopy (XAS) calculations. The ETDAC matrix _splits_ the intensity of core-to-virtual electronic transitions (oscillator strengths) into contributions from pairs of atoms: the atom the core electron leaves (core atom) and the atom where it arrives (virtual atom). With it, excited-state charge transfer between molecular fragments can be quantified, for example in π-stacked aromatic amino acids.
 
-There are two folders for two part of the post processing data (already parsed by the [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out)) from the X-ray Absorption Spectroscopy (XAS) calculations obtained by the [ORCA](https://www.kofo.mpg.de/en/research/services/orca) quantum chemical software.
+The method and its applications are described in:
 
-## Architecture folders
-### plot/
+> *X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids*, Phys. Chem. Chem. Phys. (2025). https://doi.org/10.1039/D4CP04615C
 
-Here all the notebooks are intented to plot XAS directly from the ORCA outputs
+The ETDAC matrix element is written in the paper as [$$\tilde{\gamma}^{[l,m]}_{AA^{\prime}}$$](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c). It is built from three inputs per molecular geometry: the Löwdin populations of the core molecular orbitals (MOs) on each atom, the Löwdin populations of the virtual MOs on each atom, and the oscillator strengths of the core-to-virtual MO transitions.
 
-### pop_matrices/
+## How it works
 
-#### 1. Pre-requisites
+```mermaid
+flowchart LR
+    A["ORCA XAS<br/>calculations"] --> B["xas-qmol-parser"]
+    B --> C["Inputs per geometry:<br/>core-MO populations,<br/>virtual-MO populations,<br/>oscillator strengths<br/>(3 list files + CSV matrices)"]
+    C --> D["qm_etdac_calculator<br/>checks the inputs,<br/>calculates ETDAC"]
+    D --> E["etdac_outputs/<br/>data_etdac_matrix.h5<br/>(one matrix per geometry)"]
+    D --> F["data_etdac_matrix.log<br/>(what happened in the run)"]
+    E --> G["Your analysis:<br/>heatmaps, notebooks"]
+```
 
-Check the [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out) program that parses specific data from ORCA XAS calculations. The [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out) program is a python package to parse the output files from the ORCA calculations. The core of the parser workflow is written in shell.
+The inputs come from [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out), which parses ORCA outputs. Their format is described in [docs/input-format.md](docs/input-format.md). An earlier result is never overwritten: it is kept as `data_etdac_matrix_oldversionN.h5`.
 
-#### 2. Post-processing
+## Install
 
-Here, notebooks take the outputs (parsed data) from the [x-ray_scripting_out](https://github.com/caraortizmah/x-ray_scripting_out) repository (for python as xas-qmol-parser) and calculate the electron transition decomposition atomic contribution (ETDAC) matrix.
+Python 3.11 or newer. Not on PyPI yet; install from the repository:
 
-#### 3. Core
+```bash
+git clone https://github.com/caraortizmah/atomistic_oscillator_strength.git
+cd atomistic_oscillator_strength
+python3 -m venv .venv && source .venv/bin/activate
+pip install .
+```
 
-The ETDAC matrix is calculated by the following equation:
+More options in [docs/installation.md](docs/installation.md).
 
-[$$ \huge \tilde{\gamma}^{[l,m]}_{AA^{\prime}} $$](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c)
+## Run
 
-This cperation is simple, you can do it by your own in your own program languages or check the notebooks.
-I recommend to check out [this one](popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb).
+The `qm-etdac` command is being completed for release 1.2.0 ([docs/examplesrun.md](docs/examplesrun.md)). Until then, run the calculation from Python, here on the Phe–Tyr example data shipped with the tests:
 
-#### 4. Specifications
+```python
+from qm_etdac_calculator import Controler, Operations, default_data_root
+from qm_etdac_calculator.outputs import prepare_outputs, write_etdac_h5
 
-There are two specific examples for the pair amino acid system Phe-Tyr for the first 17 excited states (FY_1-17) and for the first 26 excited states (newFY_1-26).
-The **standard case** of the postanalysis is the template in the folder:
+logs = "tests/data/phe_tyr"  # the folder with the three list files
+reader = Controler(default_data_root(logs))
+core = reader.load_dict_data(f"{logs}/resA_MOcore_list.log", "num-1")
+virt = reader.load_dict_data(f"{logs}/resB_MOvirt_list.log", "num-1")
+osc = reader.load_dict_data(f"{logs}/corevirt_fosce_AB_list.log", "virt\\core")
 
-`Standard_analysis/` as `postanalysis_generalcase.ipynb` [file](popmatrices/Standard_analysis/postanalysis_generalcase.ipynb).
+etdac = Operations().etdac_batch(core, virt, osc)  # {sample hash: core-atom x virtual-atom matrix}
+paths = prepare_outputs("etdac_outputs")
+write_etdac_h5(etdac, paths.h5, reader.inputs_read)
+```
 
-## Supporting information
+Each sample in the `.h5` file is a group `sample_<hash>` with the dataset `ETDAC_matrix`. The file also records which program version made it and which input files were used.
 
-Several post-analyses were performed applying the calculation of the core-electron transition atomic contributions (the ETDAC analysis) that uses parsed XAS calculated data by the [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out) program.
-As result of these post-analyses, it was possible to quantify excited-state charge transfer in π-stacked aromatic interactions.
-Check the following publication for further information regarding the theoretical concepts and applications in chemistry:
+## Notebooks
 
-#### *X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids*:<br> https://doi.org/10.1039/D4CP04615C
+The original analysis notebooks are kept in the repository:
+
+- `popmatrices/`: ETDAC calculation and post-analysis. The reference calculation is [popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb](popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb); the general post-analysis template is [popmatrices/Standard_analysis/postanalysis_generalcase.ipynb](popmatrices/Standard_analysis/postanalysis_generalcase.ipynb). Examples: Phe–Tyr with the first 17 (`FY_1-17`) and 26 (`newFY_1-26`) excited states.
+- `plot/`: XAS spectra plotted directly from the ORCA outputs.
+
+## For developers
+
+How the program is built, tested, logged, debugged and hardened: [docs/development.md](docs/development.md). Design decisions: [docs/adr/](docs/adr/). Status and plans: [docs/project-state.md](docs/project-state.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-This program is free software: you can redistribute it and/or modify it under the terms of the
-GNU General Public License as published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version. See [LICENSE](LICENSE).
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).
