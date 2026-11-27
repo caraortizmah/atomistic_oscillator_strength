@@ -10,6 +10,14 @@ Step 5d, commit 1: hashes.
 - check_same_hashes: every sample (hash) must be present in all inputs; samples are paired
   by hash, not by position, so different orders are fine.
 
+Temporary hash policy (1.2.0): the hash rules above, uniqueness within one list file
+(gate_controler.Controler.load_dict_data) and the recommendation of at most 9 characters
+(docs/input-format.md) assume that one run reads one set of three list files. They stay in
+force until multi-file runs are designed: a large system can be split into many list files
+(e.g. 1 000 000 samples in 100 files), and then a hash must be unique across all the list
+files of that system, not only within one, and hashes will be longer. That change needs a
+revision of ADR 0005 (see docs/project-state.md, Future).
+
 Step 5d, commit 2: CSV structure (check_csv_structure), on the raw cells before pandas
 interprets anything: no spaces around cells, exact header, unique non-negative integer
 labels (MO labels in the header, atom / virtual-MO labels in the first column), and every

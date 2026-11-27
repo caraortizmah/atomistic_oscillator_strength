@@ -40,6 +40,9 @@ Step 5c, bullet 3: load_dict_data() reads the CSV file of every entry (as the no
 but through the path policy) and returns {hash: DataFrame}. A duplicate hash in a list file
 is an error here, because a dict would silently keep only the last one. Step 5d adds the
 hash pattern (validation.check_hash) to the same first pass, before any CSV is opened.
+Uniqueness is checked within one list file only: this is part of the temporary hash policy
+(see validation.py) and becomes "unique across all list files of one system" when
+multi-file runs are designed.
 
 Step 5d, commit 2: CSV files are read in three stages (ADR 0005, "Reading CSV files"):
 1. the file's bytes are read once; everything below works on that copy (no gap between
