@@ -29,6 +29,8 @@ project uses [Semantic Versioning](https://semver.org/).
   Tests in `tests/test_logging.py`.
 - `Operations.etdac_batch` logs which non-contributing core MOs were removed per sample
   (DEBUG, only when any) and a summary line (INFO); replaces the old `report_trimmed`.
+- `docs/development.md`: "Logging and debugging" section (levels, flags, `caplog`, `breakpoint()`,
+  `pytest --pdb`, VS Code debug configuration).
 
 ### Changed
 
