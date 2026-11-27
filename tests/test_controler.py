@@ -365,3 +365,96 @@ def test_invalid_hash_is_rejected_before_any_csv_is_read(tree: dict[str, Path]) 
     list_file = _list(tree["logs"], "f10;rm,inputs/a.csv")
     with pytest.raises(InputError, match="line 1: invalid hash"):
         Controler(tree["root"]).load_dict_data(list_file, "num-1")
+
+
+# --- reading CSV files through load_dict_data (step 5d, commit 2) ---------------------
+
+POP = "num-1,sym,lvl,7\n1,C,s,60.0\n2,C,s,40.0\n"
+
+
+def _csv_and_list(tree: dict[str, Path], content: bytes) -> Path:
+    (tree["logs"] / "inputs" / "a.csv").write_bytes(content)
+    return _list(tree["logs"], "f10,inputs/a.csv")
+
+
+def _load(tree: dict[str, Path], content: bytes) -> pd.DataFrame:
+    return Controler(tree["root"]).load_dict_data(_csv_and_list(tree, content), "num-1")["f10"]
+
+
+@pytest.mark.parametrize(
+    "content",
+    [b"x\n", b"", b"atom,sym,lvl,7\n1,C,s,60.0\n", b"num-1;sym;lvl;7\n1;C;s;60.0\n", b"num-1,sym,lvl,7\n1,C,s,60.0,1\n"],
+)
+def test_broken_csv_is_an_input_error_naming_sample_and_file(tree: dict[str, Path], content: bytes) -> None:
+    """Before step 5d these raised raw pandas TypeError / ValueError / ParserError."""
+    with pytest.raises(InputError) as excinfo:
+        _load(tree, content)
+    assert str(excinfo.value).startswith("'list.log' line 1 ('f10', 'a.csv'): ")
+
+
+def test_valid_csv_is_parsed_like_the_notebook(tree: dict[str, Path]) -> None:
+    frame = _load(tree, POP.encode())
+    expected = pd.read_csv(tree["logs"] / "inputs" / "a.csv", delimiter=",", index_col="num-1")
+    pd.testing.assert_frame_equal(frame, expected, check_exact=True)
+
+
+def test_csv_with_windows_line_endings_and_bom_is_accepted_and_logged(
+    tree: dict[str, Path], caplog: pytest.LogCaptureFixture
+) -> None:
+    frame = _load(tree, b"\xef\xbb\xbf" + POP.replace("\n", "\r\n").encode())
+    assert list(frame.index) == [1, 2]
+    infos = _logged(caplog, logging.INFO)
+    assert any("a.csv' starts with a UTF-8 BOM" in m for m in infos)
+    assert any("a.csv' uses Windows line endings" in m for m in infos)
+
+
+def test_blank_line_in_csv_is_ignored_with_a_warning(tree: dict[str, Path], caplog: pytest.LogCaptureFixture) -> None:
+    frame = _load(tree, b"num-1,sym,lvl,7\n1,C,s,60.0\n\n2,C,s,40.0\n")
+    assert list(frame.index) == [1, 2]
+    assert any("a.csv' line 3: blank line ignored" in m for m in _logged(caplog, logging.WARNING))
+
+
+def test_forbidden_character_in_csv_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="line 2: forbidden character"):
+        _load(tree, b"num-1,sym,lvl,7\n1,C\t,s,60.0\n")
+
+
+def test_lone_carriage_return_in_csv_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="lone carriage return"):
+        _load(tree, b"num-1,sym,lvl,7\n1,C,s,6\r0.0\n")
+
+
+def test_non_utf8_csv_is_rejected(tree: dict[str, Path]) -> None:
+    with pytest.raises(InputError, match="not valid UTF-8"):
+        _load(tree, b"num-1,sym,lvl,7\n1,C\xe9,s,60.0\n")
+
+
+def test_whitespace_only_line_in_csv_is_ignored_with_a_warning(
+    tree: dict[str, Path], caplog: pytest.LogCaptureFixture
+) -> None:
+    frame = _load(tree, b"num-1,sym,lvl,7\n1,C,s,60.0\n   \n2,C,s,40.0\n")
+    assert list(frame.index) == [1, 2]
+    assert any("a.csv' line 3: blank line ignored" in m for m in _logged(caplog, logging.WARNING))
+
+
+def test_file_swapped_between_check_and_parse_has_no_effect(
+    tree: dict[str, Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Time-of-check / time-of-use (TOCTOU): the CSV is checked, then an attacker replaces it
+    (here with a NaN). The reader parses the bytes it checked, so the swap has no effect.
+    A reader that re-opened the file for parsing would return the NaN.
+    """
+    import qm_etdac_calculator.gate_controler as gate
+
+    original = gate.read_text_lines
+
+    def check_then_swap(data: bytes, where: str) -> list[tuple[int, str]]:
+        lines = original(data, where)  # the check sees the original content
+        if where.endswith("'a.csv'"):  # only the CSV's own check, not the list file's
+            (tree["logs"] / "inputs" / "a.csv").write_bytes(b"num-1,sym,lvl,7\n1,C,s,nan\n2,C,s,40.0\n")
+        return lines
+
+    monkeypatch.setattr(gate, "read_text_lines", check_then_swap)
+    frame = _load(tree, POP.encode())
+    assert frame["7"].tolist() == [60.0, 40.0]
