@@ -16,10 +16,15 @@ a = core atom, b = virtual atom. Populations are in percent; only step 1 is divi
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+
+from .logging_setup import untrusted
+
+logger = logging.getLogger(__name__)
 
 TEXT_COLUMNS = ["sym", "lvl"]  # non-numeric columns of the population files
 
@@ -125,7 +130,12 @@ class Operations:
             trimmed (ADR 0002).
         """
         if self.trim_core:
-            core = remove_noncontrb(core)
+            trimmed = remove_noncontrb(core)
+            for key in core:
+                removed = [mo for mo in core[key].columns if mo not in trimmed[key].columns]
+                if removed:
+                    logger.debug("%s: removed non-contributing core MOs %s", untrusted(key), untrusted(removed))
+            core = trimmed
         result: dict[str, pd.DataFrame] = {}
         for key in virt:
             matrix = etdac_matrix(
@@ -136,6 +146,7 @@ class Operations:
             matrix.index.name = "core-atom"
             matrix.columns.name = "virtual-atom"
             result[key] = matrix.apply(pd.to_numeric).sort_index(ascending=True)
+        logger.info("ETDAC calculated for %d sample(s)", len(result))
         return result
 
 
