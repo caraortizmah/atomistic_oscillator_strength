@@ -65,6 +65,7 @@ project uses [Semantic Versioning](https://semver.org/).
   pattern before conversion (`float()` accepts `nan`, `inf`, `1_000`, non-ASCII digits) and be finite;
   populations and oscillator strengths >= 0 (`-0.0` accepted); `sym`/`lvl` 1 to 8 ASCII letters;
   `.5` / `5.` read as 0.5 / 5.0 with one warning per file. `nan` in a CSV no longer spreads silently.
+- Population warnings (ADR 0005): a value above 100 %, or an MO column adding up to more than 100 % ("at the edge" up to 102.5 %, "beyond the rounding tolerance" above), gives one warning per CSV file with counts, first occurrences and what to check. Sums use `math.fsum` plus a 1e-9 tolerance, so float noise (`0.4 + 32.2 + 67.4`) never warns; sums below 100 % are normal and give no warning.
 - ADR 0005: list-file format details decided in step 5c; ADR 0003/0004: implementation notes.
 - `docs/input-format.md` and ADR 0005: the 2.5 rounding tolerance covers systems of up to 47 atoms with one decimal; larger systems need more precise values (user's responsibility).
 

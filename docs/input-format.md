@@ -91,6 +91,6 @@ letters-only `sym`/`lvl`, and the warnings for population sums above 100 %).
 
 ### Precision of the population values (your responsibility)
 
-Populations are expected in percent. The sum of one MO's populations over the atoms should not exceed 100 %; above it the program warns ("at the edge" up to 102.5 %, "beyond rounding tolerance" above).
+Populations are expected in percent. A single value should not exceed 100 %, and the sum of one MO's populations over the atoms should not exceed 100 %; above it the program warns ("at the edge" up to 102.5 %, "beyond the rounding tolerance" above). All of these findings for one file come as **one warning** naming the file, the counts and the first value or column, so you know where to look. Sums below 100 % are normal (the parser does not write every small contribution) and give no warning. Oscillator strengths have no 100 limit.
 
 The 2.5 tolerance covers the rounding of values printed with **one decimal** for systems of **up to 47 atoms** (each value can be off by up to 0.05; 47 × 0.05 = 2.35). For larger systems the rounding error grows with the number of atoms (N × 0.05; 100 atoms: up to 5.0) and can trigger the "beyond rounding tolerance" warning even for correct data. **Providing values with enough precision is the user's responsibility**: for systems larger than 47 atoms, export the populations with more decimals.

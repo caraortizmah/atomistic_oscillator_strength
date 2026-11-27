@@ -1,6 +1,6 @@
 # ADR 0005: Input validation: allowlist, fail closed
 
-- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below; number format, `-0.0`, abbreviated decimals)
+- Status: accepted; revised 2026-11-26 before implementation (edge warning for rounding, size limits fixed now and configurable later, required tests added); revised 2026-11-27 during step 5c (list-file format details, see the section below); revised 2026-11-27 during step 5d (reading CSV files, see the section below; number format, `-0.0`, abbreviated decimals; population warnings: one per file, float tolerance, sums below 100 %)
 - Date: 2026-11-26
 
 ## Context
@@ -37,6 +37,8 @@ Warnings (the run continues, the warning is logged, the data's veracity should b
 | Sum of one MO's populations over the atoms, sum > 102.5 % | "beyond rounding tolerance": check the veracity of the data |
 
 Why the 2.5 tolerance: the parser prints populations with one decimal, so each value carries a rounding error of up to 0.05. Summed over 47 atoms, that is up to 47 × 0.05 = 2.35 percentage points. A column sum of, say, 101.2 is therefore probably a rounding artefact, not a data error, but it is still reported as a warning: data at the edge must never pass unnoticed. Above 102.5 rounding can no longer explain it, and the warning says so. A sum of exactly 100.0 gives no warning. In the Phe–Tyr data the largest column sum is 99.8.
+
+Population warnings as implemented (step 5d, commit 3b): the three population findings (single values above 100 %, sums at the edge, sums beyond the tolerance) are combined into one WARNING per CSV file, with the count and the first occurrence of each, and the advice to check the population output of that sample. Column sums are computed with `math.fsum`, and a tolerance of 1e-9 absorbs binary representation error (e.g. `0.4 + 32.2 + 67.4` is `100.00000000000001` as floats, but 100.0 in the file), so exact sums of 100.0 and 102.5 fall on the intended side. The tolerance is far below the 0.1 resolution of the data, so no real excess is hidden. Sums below 100 % give no warning: the parser does not write every small contribution, and the Phe–Tyr data has column sums from 96.1 to 99.8. Oscillator strengths are not percentages and have no 100 limit.
 
 Scope of the tolerance: 2.5 is calibrated for systems of up to 47 atoms with values printed to one decimal. For N atoms the worst-case rounding error is N × 0.05 percentage points (e.g. 100 atoms: 5.0), so larger systems can trigger the "beyond rounding tolerance" warning from rounding alone. Providing values with adequate precision (more decimals for larger systems) is the user's responsibility; the user documentation (`docs/input-format.md`) says so. Making the tolerance depend on the number of atoms is a possible future change and would need a revision of this ADR.
 
@@ -107,7 +109,7 @@ Every rule has a negative test (the input must be rejected or warned about) pair
 | Paths (ADR 0003/0004) | absolute path; `../../etc/passwd`; symlink pointing outside the data root → error | relative path inside the data root |
 | Output (ADR 0003) | existing output → renamed `_oldversion1`, never overwritten; existing `_oldversion1` → next is `_oldversion2` | empty output folder → plain name |
 | Warning: single population | 100.1 → warning, run continues | 100.0 → no warning |
-| Warning: MO sum at the edge | 100.1 and 102.5 → "at the edge" warning | 100.0 → no warning |
+| Warning: MO sum at the edge | 100.1 and 102.5 → "at the edge" warning | 100.0, also when the floats add up to 100.00000000000001 → no warning; 96.1 → no warning |
 | Warning: MO sum beyond tolerance | 102.6 → "beyond rounding tolerance" warning | 102.5 → only the edge warning |
 | Message safety | hostile value (newline, ANSI escape, 10 kB string) → message names hash and file, shows the value with `repr()`, truncated | — |
 
