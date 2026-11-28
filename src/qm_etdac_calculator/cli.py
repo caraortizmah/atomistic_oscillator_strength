@@ -3,11 +3,14 @@ The `qm-etdac` command: runs the ETDAC calculation from the command line.
 
     qm-etdac noauto --list-input F1 F2 F3 [--paths-inout LOGS] [--verbose | --debug]
     qm-etdac auto CONFIG.json [--verbose | --debug]
+    qm-etdac check CONFIG.json [--verbose | --debug]
 
 F1, F2 and F3 are the three list files (core-MO populations, virtual-MO populations,
 core-electron transition intensities) inside the project folder LOGS, by default the folder
 where the command runs. In auto mode the same settings come from a JSON file
 (config.read_config, strict schema). The results go to LOGS/etdac_outputs (ADR 0007).
+`check` reads and validates the inputs of a JSON file like a run, but calculates and writes
+nothing (no output folder, no run log; Scheme.check).
 
 Order of a run: console logging, settings (ConfigMan), output folder (Scheme.prepare_outputs),
 run log next to the results, then Scheme.run. Only this module configures logging (D19).
@@ -15,7 +18,7 @@ InputError and OutputError are expected problems: one line on stderr, exit code 
 --debug also the traceback). Usage errors exit with 2 (argparse). Anything else is a program
 bug and keeps its traceback.
 
-The `check` mode follows in step 6.5; `qm-etdac-test` in step 6.6.
+`qm-etdac-test` follows in step 6.6.
 """
 
 from __future__ import annotations
@@ -84,6 +87,14 @@ def _parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         "logspath); results go to <logspath>/etdac_outputs.",
     )
     auto.add_argument("config", metavar="CONFIG.json", help="the JSON file with the settings of the run")
+    check = modes.add_parser(
+        "check",
+        parents=[common],
+        help="validate the inputs of a JSON file, without calculating or writing",
+        description="Read and validate the inputs named in a JSON file (same file as auto) exactly as a run "
+        "would; nothing is calculated or written.",
+    )
+    check.add_argument("config", metavar="CONFIG.json", help="the JSON file with the settings of the run")
     return parser, noauto
 
 
@@ -95,6 +106,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         noauto.error(_NO_OUTPUT_FOLDER)  # exits with 2
 
     configure_logging(verbose=args.verbose, debug=args.debug)
+    if args.mode == "check":
+        return _check(args.config, debug=args.debug)
     try:
         if args.mode == "auto":
             config = read_config(args.config)
@@ -109,6 +122,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         logger.error("%s", error, exc_info=args.debug)
         return 1
     logger.info("results: %s (run log: %s)", paths.h5, paths.log.name)
+    return 0
+
+
+def _check(config_file: str, debug: bool) -> int:
+    """`qm-etdac check`: validate the inputs; console only, nothing written."""
+    try:
+        samples = Scheme(read_config(config_file)).check()
+    except InputError as error:
+        logger.error("%s", error, exc_info=debug)
+        return 1
+    logger.info("check passed: %d samples, inputs valid; nothing calculated or written", samples)
     return 0
 
 
