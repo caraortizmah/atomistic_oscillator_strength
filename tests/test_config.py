@@ -2,7 +2,8 @@
 
 The keys are those of `qm-etdac auto` JSON files and of the old manager script, so
 ConfigMan(**settings) keeps working. ConfigMan checks no files: Controler does that, with
-the path policy (ADR 0003). Reading a JSON file is step 6.
+the path policy (ADR 0003). Reading a JSON file is step 6. Since step 6.2 the output folder
+is not a setting: it is always `etdac_outputs` inside the logs folder (ADR 0007).
 """
 
 from __future__ import annotations
@@ -20,7 +21,6 @@ SETTINGS = {
     "virtpop": "resB_MOvirt_list.log",
     "etranscv": "corevirt_fosce_AB_list.log",
     "logspath": "tests/data/phe_tyr",
-    "outputpath": "results",
 }
 
 
