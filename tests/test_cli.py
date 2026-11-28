@@ -1,4 +1,4 @@
-"""The `qm-etdac` command (step 6.3: `noauto`).
+"""The `qm-etdac` command (step 6.3: `noauto`; step 6.4: `auto`).
 
 The tests call cli.main(argv) in the same process, on a copy of the Phe-Tyr folder, so
 nothing is written into tests/data/. Console messages go to stderr (captured with capsys).
@@ -6,6 +6,7 @@ nothing is written into tests/data/. Console messages go to stderr (captured wit
 
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 from collections.abc import Iterator
@@ -93,6 +94,39 @@ def test_a_program_bug_keeps_its_traceback(project: Path, monkeypatch: pytest.Mo
     monkeypatch.setattr(Scheme, "run", broken_run)
     with pytest.raises(RuntimeError, match="simulated program bug"):
         main(["noauto", *LIST_INPUT, "--paths-inout", str(project)])
+
+
+def test_help_lists_auto(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--help"])
+    assert exit_info.value.code == 0
+    assert "auto" in capsys.readouterr().out.split("noauto", 1)[1]  # listed besides noauto
+
+
+def test_auto_runs_from_a_json_file(project: Path, tmp_path: Path) -> None:
+    config = tmp_path / "run.json"
+    config.write_text(
+        json.dumps(
+            {
+                "corepop": "resA_MOcore_list.log",
+                "virtpop": "resB_MOvirt_list.log",
+                "etranscv": "corevirt_fosce_AB_list.log",
+                "logspath": str(project),
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert main(["auto", str(config)]) == 0
+    assert len(read_etdac_h5(project / "etdac_outputs" / "data_etdac_matrix.h5")) == 52
+
+
+def test_auto_with_a_broken_json_file_is_one_line(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    config = tmp_path / "run.json"
+    config.write_text("{", encoding="utf-8")
+    assert main(["auto", str(config)]) == 1
+    err = capsys.readouterr().err
+    assert "ERROR:" in err and "not valid JSON" in err
+    assert "Traceback" not in err
 
 
 def test_list_input_is_required(capsys: pytest.CaptureFixture[str]) -> None:
