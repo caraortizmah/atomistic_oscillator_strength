@@ -37,7 +37,7 @@ def _reset_package_logger() -> Iterator[None]:
 @pytest.fixture
 def project(phe_tyr_dir: Path, tmp_path: Path) -> Path:
     copy = tmp_path / "phe_tyr"
-    shutil.copytree(phe_tyr_dir, copy, ignore=shutil.ignore_patterns("reference"))
+    shutil.copytree(phe_tyr_dir, copy, ignore=shutil.ignore_patterns("reference", "etdac_outputs"))  # no demo results
     return copy
 
 

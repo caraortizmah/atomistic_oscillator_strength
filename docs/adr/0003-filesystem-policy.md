@@ -56,3 +56,4 @@ and its contents are user data and are never touched.
   - An existing target is rejected before anything is written (fail fast).
   - Known limits: filesystems without hard links (FAT, some network mounts) cannot publish (goes with the HPC item in `docs/project-state.md`); the folder entry itself is not fsynced, so after a power cut the new name may be lost, but never a half-written file under it.
   - Implementation note, step 5f: the last shell call in `src/` and `bin/` (`mkdir -p` with `shell=True` in `bin/manager_etdac.py`) is removed. The ruff security rules (`S602`/`S604`, step 8) will check the whole code for shell calls.
+  - Implementation note, step 6.4: the strict JSON schema is implemented in `config.read_config` (exactly the four keys `corepop`, `virtpop`, `etranscv`, `logspath`, non-empty strings; unknown, missing and duplicate keys are an `InputError`); tests in `tests/test_config.py`.

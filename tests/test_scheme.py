@@ -31,7 +31,7 @@ LIST_FILES = {
 def project(phe_tyr_dir: Path, tmp_path: Path) -> Path:
     """A copy of the Phe-Tyr folder: list files and inputs/ (the reference/ folder is not needed)."""
     copy = tmp_path / "phe_tyr"
-    shutil.copytree(phe_tyr_dir, copy, ignore=shutil.ignore_patterns("reference"))
+    shutil.copytree(phe_tyr_dir, copy, ignore=shutil.ignore_patterns("reference", "etdac_outputs"))  # no demo results
     return copy
 
 

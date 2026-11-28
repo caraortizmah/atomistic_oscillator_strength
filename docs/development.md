@@ -13,14 +13,14 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 | `gate_controler.py` | reading the inputs: `Controler(data_root).load_dict_data(list_file, index_col)` | a list file and the CSV files it names | `{hash: DataFrame}`; `Controler.inputs_read` (path and SHA-256 of every file used) |
 | `validation.py` | the input rules: used while reading (hashes, CSV structure and values, population sums) and by `etdac_batch` (the same samples in all three inputs) | raw lines and cells; the three sets of hashes | nothing, or an `InputError` / a warning |
 | `outputs.py` | writing the results: `prepare_outputs`, `write_etdac_h5` | the results and `inputs_read` | `etdac_outputs/data_etdac_matrix.h5` |
-| `config.py` | the run settings: `ConfigMan` (the three list files and the logs folder, i.e. the project folder); checks nothing itself | the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`) | `list_files()`: the paths of the three list files; `output_dir()`: `etdac_outputs/` inside the logs folder, the only place a run writes (ADR 0007) |
-| `cli.py` | the `qm-etdac` command: `main(argv)` parses the arguments, configures logging (console, then the run log next to the results) and runs `Scheme`; `InputError`/`OutputError` become one `ERROR:` line and exit code 1 | the command line | exit code; results and run log in `LOGS/etdac_outputs/` |
+| `config.py` | the run settings: `ConfigMan` (the three list files and the logs folder, i.e. the project folder); checks nothing itself | the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`) | `list_files()`: the paths of the three list files; `output_dir()`: `etdac_outputs/` inside the logs folder, the only place a run writes (ADR 0007); `read_config(path)`: the settings from the JSON file of `qm-etdac auto` (strict schema, `InputError` for every mistake) |
+| `cli.py` | the `qm-etdac` command (`noauto`, `auto`): `main(argv)` parses the arguments or reads the JSON file, configures logging (console, then the run log next to the results) and runs `Scheme`; `InputError`/`OutputError` become one `ERROR:` line and exit code 1 | the command line | exit code; results and run log in `LOGS/etdac_outputs/` |
 | `logging_setup.py` | log configuration for the program entry point; `untrusted()` for values from input files, `untrusted_path()` for paths in messages | verbosity, log file path | configured loggers |
 | `errors.py` | `InputError` (bad input files), `OutputError` (unusable output location) | | |
 
 Terms: the third input is called **oscillator strengths** in the code, in the CSV files (`corevirt_fosce`, f = oscillator strength) and in ORCA. The user documentation and the program's messages to users call it **core-electron transition intensities**.
 
-Not working yet (notebook leftovers, rebuilt in the next steps): the `auto` and `check` modes of `qm-etdac` and the `qm-etdac-test` command (steps 6.4 to 6.6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
+Not working yet (notebook leftovers, rebuilt in the next steps): the `check` mode of `qm-etdac` and the `qm-etdac-test` command (steps 6.5 and 6.6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
 
 ### What each part receives and gives back
 

@@ -2,22 +2,14 @@
 
 ## Available commands
 
-For the installed version there are two main commands: `qm-etdac` and `qm-etdac-test`
-
-For non-installed version or developing mode program `qm-etdac` can be used by typing:
+The installed program provides two commands: `qm-etdac` runs the calculation, `qm-etdac-test` is a built-in self-check (being completed, step 6.6). Without the installed console scripts, for example while developing, the same command runs as a Python module:
 
 ```bash
-python src/qm_etdac_calculator/cli.py
+python -m qm_etdac_calculator.cli noauto --list-input F1 F2 F3
 ```
 
-and `qm-etdac-test` by typing:
+There are two ways to run the calculation: with the settings on the command line (`noauto`) or in a JSON file (`auto`).
 
-```bash
-python src/qm_etdac_calculator/cli.py test
-```
-
-Regarding running the ETDAC calculator, there are two modes of doing it:
-     
 ### 1. noauto mode
 
 ```bash
@@ -42,8 +34,28 @@ If an input is wrong, the program prints one line starting with `ERROR:`, writes
 ### 2. auto mode
 
 ```bash
-qm-etdac auto 'json_file'
+qm-etdac auto CONFIG.json [--verbose | --debug]
 ```
 
-where the JSON file is a dictionary that contains the five arguments presented in the `noauto` mode.
-More information regarding the format in [examples folder](../examples/).
+The JSON file holds the same settings as the `noauto` command, under four keys, all required:
+
+```json
+{
+  "corepop": "resA_MOcore_list.log",
+  "virtpop": "resB_MOvirt_list.log",
+  "etranscv": "corevirt_fosce_AB_list.log",
+  "logspath": "tests/data/phe_tyr"
+}
+```
+
+- `corepop`, `virtpop`, `etranscv`: the three list files, in the same order as `F1 F2 F3` of `noauto`, inside `logspath`.
+- `logspath`: the project folder (see [Project folder](input-format.md#project-folder)), relative to the folder where you run the command, or absolute.
+- The results go to `<logspath>/etdac_outputs/`, exactly as with `noauto`.
+- The file is checked strictly: exactly these four keys, each value a non-empty text, no key twice. Files from older versions with an `outputpath` key are rejected: the output folder is no longer chosen.
+- Every mistake in the file gives one line starting with `ERROR:` that names the file (for invalid JSON also the line and column), and the program stops with exit code 1.
+
+Example: save the JSON above as `run.json` in the repository folder and run:
+
+```bash
+qm-etdac auto run.json
+```
