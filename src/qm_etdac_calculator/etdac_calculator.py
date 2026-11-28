@@ -1,21 +1,38 @@
 """
-Scheme of running the electron transition decomposition atomic contribution
-(ETDAC) calculation.
+One ETDAC calculation from start to end: read the three inputs, calculate, write the results.
 
-Data presented here comes from the xas-qmol-parser
-Read  https://doi.org/10.1039/D4CP04615C : 
-"X-ray absorption spectroscopy reveals charge transfer in π-stacked aromatic amino acids"
-for further information
+Read https://doi.org/10.1039/D4CP04615C :
+"X-ray absorption spectroscopy reveals charge transfer in pi-stacked aromatic amino acids"
+for the method. The calculation itself is in etdac_operations.py; this module only puts the
+parts together, in this order:
+
+1. prepare_outputs(): the output folder and the paths of the .h5 and .log files; an earlier
+   result is kept as `_oldversionN` (outputs.py, ADR 0003);
+2. run(paths): one Controler reads the three list files and their CSV files (path policy and
+   input rules, ADR 0003/0005), Operations.etdac_batch calculates every sample, and
+   write_etdac_h5 writes the results with the provenance of every file read (ADR 0006).
+
+The two steps are separate so the program entry point can open the run log at paths.log
+before anything is read: modules only log, the entry point configures logging (D19). A run
+that fails on its inputs writes no .h5 file.
 """
 
-import numpy as np
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
 import pandas as pd
-import csv as csv
-import h5py
 
-from .gate_controler import Controler
+from .config import ConfigMan
 from .etdac_operations import Operations
+from .gate_controler import Controler, default_data_root
+from .outputs import OutputPaths, prepare_outputs, write_etdac_h5
 
+POP_INDEX = "num-1"  # index column of the population files (atom number)
+OSC_INDEX = "virt\\core"  # index column of the oscillator-strength files (virtual MO)
+
+
+@dataclass(frozen=True)
 class Scheme:
     """
     Take the accepted arguments from ConfigMan class and load the log files,
