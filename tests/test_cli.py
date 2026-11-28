@@ -1,4 +1,4 @@
-"""The `qm-etdac` command (step 6.3: `noauto`; step 6.4: `auto`).
+"""The `qm-etdac` command (step 6.3: `noauto`; step 6.4: `auto`; step 6.5: `check`).
 
 The tests call cli.main(argv) in the same process, on a copy of the Phe-Tyr folder, so
 nothing is written into tests/data/. Console messages go to stderr (captured with capsys).
@@ -127,6 +127,34 @@ def test_auto_with_a_broken_json_file_is_one_line(tmp_path: Path, capsys: pytest
     err = capsys.readouterr().err
     assert "ERROR:" in err and "not valid JSON" in err
     assert "Traceback" not in err
+
+
+def _config(tmp_path: Path, logspath: Path, virtpop: str = "resB_MOvirt_list.log") -> Path:
+    path = tmp_path / "check.json"
+    settings = {"corepop": "resA_MOcore_list.log", "virtpop": virtpop, "etranscv": "corevirt_fosce_AB_list.log"}
+    path.write_text(json.dumps({**settings, "logspath": str(logspath)}), encoding="utf-8")
+    return path
+
+
+def test_help_lists_check(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        main(["--help"])
+    assert exit_info.value.code == 0
+    assert "check" in capsys.readouterr().out
+
+
+def test_check_passes_without_writing(project: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["check", str(_config(tmp_path, project))]) == 0
+    assert "check passed: 52 samples" in capsys.readouterr().err
+    assert not (project / "etdac_outputs").exists()
+
+
+def test_check_with_a_broken_input_is_one_line(project: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["check", str(_config(tmp_path, project, virtpop="missing.log"))]) == 1
+    err = capsys.readouterr().err
+    assert "ERROR: list file not found" in err
+    assert "Traceback" not in err
+    assert not (project / "etdac_outputs").exists()
 
 
 def test_list_input_is_required(capsys: pytest.CaptureFixture[str]) -> None:
