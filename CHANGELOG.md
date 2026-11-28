@@ -77,6 +77,7 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `config.py` rewritten (step 5f): `ConfigMan` holds the run settings under the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`, `outputpath`, default `etdac_outputs`), frozen; `list_files()` gives the three list files inside the logs folder. A missing or unknown key is an error. `ConfigMan` is exported from the package again.
 - `Operations.etdac_batch` checks that the three inputs contain the same samples: a sample missing
   from the virtual input was silently dropped before, one missing from the core input raised a bare
   `KeyError`; both are now an `InputError`.
@@ -103,6 +104,7 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Removed
 
+- `ConfigMan.checker_outpath`, `checker_log_file`, `checker_logs` and `load`: they repeated the checks of `Controler` and read whole files outside the path policy and the size limits (ADR 0003, ADR 0005).
 - `gate_controler.py` notebook leftovers (`is_datawell`, `get_dict_data`, `save_ETDAC_matrix`,
   module-level notebook code); reading returns in step 5c, writing in step 5e.
 - `setup.py`: duplicated package discovery from `pyproject.toml` with conflicting settings.

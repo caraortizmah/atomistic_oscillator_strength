@@ -12,12 +12,13 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 | `gate_controler.py` | reading the inputs: `Controler(data_root).load_dict_data(list_file, index_col)` | a list file and the CSV files it names | `{hash: DataFrame}`; `Controler.inputs_read` (path and SHA-256 of every file used) |
 | `validation.py` | the input rules: used while reading (hashes, CSV structure and values, population sums) and by `etdac_batch` (the same samples in all three inputs) | raw lines and cells; the three sets of hashes | nothing, or an `InputError` / a warning |
 | `outputs.py` | writing the results: `prepare_outputs`, `write_etdac_h5` | the results and `inputs_read` | `etdac_outputs/data_etdac_matrix.h5` |
+| `config.py` | the run settings: `ConfigMan` (the three list files, the logs folder, the output folder); checks nothing itself | the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`, `outputpath`) | `list_files()`: the paths of the three list files |
 | `logging_setup.py` | log configuration for the program entry point; `untrusted()` for values in messages | verbosity, log file path | configured loggers |
 | `errors.py` | `InputError` (bad input files), `OutputError` (unusable output location) | | |
 
 Terms: the third input is called **oscillator strengths** in the code, in the CSV files (`corevirt_fosce`, f = oscillator strength) and in ORCA. The user documentation and the program's messages to users call it **core-electron transition intensities**.
 
-Not working yet (notebook leftovers, rebuilt in the next steps): `etdac_calculator.py` (`Scheme`, the orchestration, step 5f), `config.py` (`ConfigMan`, run settings), `cli.py` (the `qm-etdac` command, step 6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
+Not working yet (notebook leftovers, rebuilt in the next steps): `etdac_calculator.py` (`Scheme`, the orchestration, step 5f), `cli.py` (the `qm-etdac` command, step 6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
 
 ### What each part receives and gives back
 
