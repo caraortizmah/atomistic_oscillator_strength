@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 from conftest import REFERENCE_H5, assert_etdac_equal, read_etdac_h5
 
+from qm_etdac_calculator import Scheme
 from qm_etdac_calculator.cli import main
 from qm_etdac_calculator.logging_setup import PACKAGE_LOGGER
 
@@ -75,6 +76,23 @@ def test_debug_adds_the_traceback(project: Path, capsys: pytest.CaptureFixture[s
     argv = ["noauto", "--list-input", "missing.log", "resB_MOvirt_list.log", "corevirt_fosce_AB_list.log"]
     assert main([*argv, "--paths-inout", str(project), "--debug"]) == 1
     assert "Traceback" in capsys.readouterr().err
+
+
+def test_a_program_bug_keeps_its_traceback(project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only InputError and OutputError are expected problems (one ERROR line, exit 1).
+
+    Anything else is a bug in the program: it must keep its traceback, never look like a
+    mistake in the user's inputs. A wider `except` (e.g. `except Exception`) would print
+    "ERROR: <message>" with exit code 1, and the user would search their data for an error
+    that is not there.
+    """
+
+    def broken_run(self: Scheme, paths: object) -> None:
+        raise RuntimeError("simulated program bug")
+
+    monkeypatch.setattr(Scheme, "run", broken_run)
+    with pytest.raises(RuntimeError, match="simulated program bug"):
+        main(["noauto", *LIST_INPUT, "--paths-inout", str(project)])
 
 
 def test_list_input_is_required(capsys: pytest.CaptureFixture[str]) -> None:
