@@ -77,6 +77,7 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Project folder (ADR 0007, step 6.2): a run writes only to `etdac_outputs/` inside the logs folder (`ConfigMan.output_dir()`); the output folder is no longer a setting, and `outputpath` is rejected as an unknown key. Before, the default was `./etdac_outputs/` in the folder where the program ran, and any folder could be chosen. `docs/input-format.md`: "Project folder" section. `.gitignore` ignores `etdac_outputs/`.
 - `default_data_root`: a logs folder that does not exist gives an `InputError` ("logs folder not found") instead of a bare `FileNotFoundError` traceback (step 6.1).
 - `etdac_calculator.py` rewritten (step 5f): `Scheme(config)` runs one calculation in two steps, `prepare_outputs()` (output folder, earlier result kept) and `run(paths)` (one `Controler` reads the three inputs, `Operations.etdac_batch` calculates, `write_etdac_h5` writes with provenance); the notebook leftovers are removed. `Scheme` is exported from the package again; the README example uses it. End-to-end golden test in `tests/test_scheme.py`.
 - `config.py` rewritten (step 5f): `ConfigMan` holds the run settings under the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`, `outputpath`, default `etdac_outputs`), frozen; `list_files()` gives the three list files inside the logs folder. A missing or unknown key is an error. `ConfigMan` is exported from the package again.

@@ -20,7 +20,7 @@ flowchart LR
     E --> G["Your analysis:<br/>heatmaps, notebooks"]
 ```
 
-The inputs come from [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out), which parses ORCA outputs. Their format is described in [docs/input-format.md](docs/input-format.md). An earlier result is never overwritten: it is kept as `data_etdac_matrix_oldversionN.h5`.
+The inputs come from [xas-qmol-parser](https://github.com/caraortizmah/x-ray_scripting_out), which parses ORCA outputs. Their format, and how to keep one folder per system, are described in [docs/input-format.md](docs/input-format.md). An earlier result is never overwritten: it is kept as `data_etdac_matrix_oldversionN.h5`.
 
 ## Install
 
@@ -49,7 +49,7 @@ config = ConfigMan(
     logspath="tests/data/phe_tyr",        # the folder with the three list files
 )
 scheme = Scheme(config)
-paths = scheme.prepare_outputs()  # etdac_outputs/; an earlier result is kept
+paths = scheme.prepare_outputs()  # tests/data/phe_tyr/etdac_outputs/; an earlier result is kept
 etdac = scheme.run(paths)         # {sample hash: core-atom x virtual-atom matrix}, also written to paths.h5
 ```
 

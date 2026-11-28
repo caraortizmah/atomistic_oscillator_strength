@@ -1,6 +1,6 @@
 # Project state: qm_etdac_calculator
 
-_Last updated: 2026-11-28 - Checkpoint 5f (run settings and orchestration); step 5 done_
+_Last updated: 2026-11-28 - Step 6.2 (project folder, ADR 0007); checkpoint 5f: step 5 done_
 
 ## How to resume
 
@@ -12,7 +12,7 @@ In case of assistance, this file serves as context for a prompt into a conversat
 
 ## Where we are
 
-- The packaging plan is agreed. Steps 0–5 are committed; step 5 was split into 5a–5f: 5a (calculation), 5b (logging), 5c (reading inputs with the path policy), 5d (input validation), 5e (writing outputs with provenance) and 5f (run settings `ConfigMan`, orchestration `Scheme`, shell call removed from `bin/manager_etdac.py`). `pytest` gives 312 passed, including the three golden tests. Next: step 6 (CLI).
+- The packaging plan is agreed. Steps 0–5 are committed; step 5 was split into 5a–5f: 5a (calculation), 5b (logging), 5c (reading inputs with the path policy), 5d (input validation), 5e (writing outputs with provenance) and 5f (run settings `ConfigMan`, orchestration `Scheme`, shell call removed from `bin/manager_etdac.py`). `pytest` gives 315 passed, including the three golden tests. Step 6 (CLI) is in progress: 6.1 and 6.2 (project folder, ADR 0007) are done.
 - The calculation runs end to end from Python with `ConfigMan` and `Scheme` (shown in the README) and reproduces the published Phe–Tyr results exactly. `cli.py`, the `qm-etdac` command and `bin/manager_etdac.py` are still broken (notebook leftovers); step 6 rebuilds them.
 - The documentation is split for two audiences: users (README, `docs/input-format.md`, `docs/installation.md`) and developers (`docs/development.md`, the ADRs, this file).
 - The notebook `popmatrices/Bigscale/ETDAC_matrix_calculator.ipynb` reproduces `popmatrices/Bigscale/data_etdac_matrix.h5` exactly (checked on samples f00 and f13). This is the golden reference.
@@ -57,14 +57,15 @@ Decisions keep their IDs; they are grouped by topic, the calculation first.
 | D27 | Documentation for two audiences: users first (README with a process flowchart, `docs/input-format.md`, `docs/installation.md`: the science, how to install and run, the input format), developers second (`docs/development.md`: architecture, setup, tests, logging and debugging, hardening, scaling; four flowcharts). Hardening is a feature that serves the calculation and is documented for developers. | here |
 | D30 | Provenance (implements D18): `Controler.inputs_read` records every file whose content passed the checks, with its path relative to the data root and the SHA-256 of the checked bytes (never a second read); `input_files` is written with `json.dumps`. Added hardening (not essential): ASCII-only JSON, only checked files recorded with de-duplication, inputs required by the writer. | ADR 0006 |
 | D31 | Purpose audit before the release (step 10a): the software reads as an ETDAC calculator first (README and `etdac_operations.py`), everything else as machinery; user docs never need developer docs; developer docs cover security, modularity, extensibility and scaling/HPC. | here |
-| D32 | Run settings and orchestration (implements D15): `ConfigMan` is a frozen dataclass with the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`, `outputpath`); `outputpath` is the output folder itself, default `etdac_outputs`; it checks no files (its old `checker_*` methods read files outside the path policy and were removed). `Scheme(config)` is used in two steps, `prepare_outputs()` then `run(paths)`, so the entry point can open the run log before anything is read. | here |
+| D32 | Run settings and orchestration (implements D15): `ConfigMan` is a frozen dataclass with the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`, `outputpath`); `outputpath` is the output folder itself, default `etdac_outputs`; it checks no files (its old `checker_*` methods read files outside the path policy and were removed). `Scheme(config)` is used in two steps, `prepare_outputs()` then `run(paths)`, so the entry point can open the run log before anything is read. Revised 2026-11-28 by ADR 0007: `outputpath` is removed; the output folder is always `etdac_outputs/` inside the logs folder. | here |
+| D33 | Project folder (ADR 0007): the folder with the three list files is the project folder (the current folder when none is given); CSV files in `inputs/` by convention; a run writes only to `etdac_outputs/` inside it; data never lives where the program is installed. Least privilege before the PyPI release: ADR 0004 ends and the data root becomes the project folder itself (step 10a). | ADR 0007 |
 
 ### Hardening (security and robustness)
 
 | ID  | Decision | Record |
 |-----|----------|--------|
 | D3  | Filesystem policy: strict data root, outputs only in `etdac_outputs/`, nothing overwritten. | ADR 0003 |
-| D3a | Default data root temporarily widened to the parent of the logs folder (rule stays strict) until `newFY_1-26` is renamed. | ADR 0004 |
+| D3a | Default data root temporarily widened to the parent of the logs folder (rule stays strict) until `newFY_1-26` is renamed; ends before the PyPI release (ADR 0007). | ADR 0004 |
 | D17 | Input validation: allowlist, fail closed; warnings for populations > 100 % and for MO sums > 100 % (two levels: "at the edge" up to 102.5 %, "beyond rounding tolerance" above). Size limits fixed for now. Required tests (negative + boundary pairs) listed in the ADR. Context-aware output encoding and CSV/formula injection documented as security examples. | ADR 0005 |
 | D20 | List-file reading: strict structure, tolerated editing leftovers always reported (BOM, `\r\n`/`\r`, mixed `\n`+`\r\n`, blank lines, spaces inside paths); lone `\r` mixed with other endings, control/invisible characters and duplicate hashes are errors; the whole list is checked before any CSV is opened; format errors point to `docs/input-format.md`. | ADR 0005 |
 | D21 | CSV reading in three stages: the bytes are read once (no gap between check and parse: TOCTOU), the raw text is checked (same line rules as list files, plain split on commas, no quoting, no spaces around cells, exact header, unique integer labels, rows as long as the header), and only then pandas parses the checked text exactly as the notebook did. Every problem is an `InputError` naming list file, line, hash and CSV file. | ADR 0005 |
@@ -89,14 +90,20 @@ Decisions keep their IDs; they are grouped by topic, the calculation first.
   - [x] 5e. Writing outputs (ADR 0003/0006): `prepare_outputs` (output folder, `.h5` + `.log` pair, `_oldversionN` rotation with a warning), `write_etdac_h5` (notebook layout, temporary file published with `os.link`, never overwrites), provenance (`Controler.inputs_read`, file attributes); second golden test end to end through the package; 297 tests green
   - [x] 5f. Run settings and orchestration (D32): `ConfigMan` as frozen settings (`checker_*` removed); shell call (`mkdir -p` with `shell=True`, CWE-78) removed from `bin/manager_etdac.py`, whole-code check left to ruff `S` in step 8; `Scheme` (`prepare_outputs()`, `run(paths)`) replaces the notebook leftovers of `etdac_calculator.py` (`gate_controler.py` had none left); golden test end to end through `Scheme`; README example uses it; 312 tests green
 - [x] Documentation for two audiences (after 5e): README with a user flowchart; `docs/input-format.md` and `docs/installation.md` for users; `docs/development.md` for developers (architecture, setup, tests, debugging, hardening, scaling; four flowcharts); ADR 0005 marked as a developer document; this file grouped by topic
-- [ ] 6. CLI as documented, inside the package
-  - a logs folder that does not exist gives an `InputError` from `default_data_root` instead of a bare `FileNotFoundError` (found in 5f), own commit with a boundary test
+- [ ] 6. CLI as documented, inside the package (one commit per bullet; numbered 6.x because 6b is taken)
+  - [x] 6.1. A logs folder that does not exist gives an `InputError` from `default_data_root` instead of a bare `FileNotFoundError` (found in 5f)
+  - [x] 6.2. Project folder (D33, ADR 0007): a run writes only to `etdac_outputs/` inside the logs folder; `outputpath` removed; "Project folder" in `docs/input-format.md`; `.gitignore` ignores `etdac_outputs/`
+  - [ ] 6.3. `qm-etdac noauto --list-input F1 F2 F3 [--paths-inout LOGS]` (current folder when no folder is given), `--verbose`/`--debug`, one-line errors for `InputError`/`OutputError`; `docs/examplesrun.md` noauto section (dead `examples` link replaced)
+  - [ ] 6.4. `qm-etdac auto <json>`: strict schema (unknown or missing keys, non-string values, invalid JSON are `InputError`); `examplesrun.md` auto section with an example JSON (dead link replaced)
+  - [ ] 6.5. `qm-etdac check <json>`: reads and validates the inputs, calculates and writes nothing
+  - [ ] 6.6. `qm-etdac-test`: minimal built-in self-check (one hand-computed sample in memory, no files)
+  - [ ] 6.7. Checkpoint
 - [ ] 6b. `etdac_editprinter` as functions; atom-range config
 - [ ] 7. Vectorised `etdac_matrix` (was `ts_psb_acore_bvirt`; spec + failing test provided)
 - [ ] 8. ruff (incl. `S` security rules), then mypy, then pre-commit
 - [ ] 9. GitHub Actions CI: least-privilege token, SHA-pinned actions, hashed install, build + `twine check`; recompile the lock and fail on diff; `pip-audit` (proposed); test on the oldest and newest supported Python (3.11 and 3.14): a 3.12+-only f-string slipped in during 5c and was caught by hand
 - [ ] 10. Docs cleanup: `docs/examplesrun.md` for the finished CLI, README "Run" section switched to the command, CHANGELOG ordered with calculation changes first; release 1.2.0. (The resA/resB naming note, the uninstall note and the empty installation sections were done in the documentation split.)
-- [ ] 10a. Purpose audit before the release (D31): module docstrings open with their role for the calculation (step history moves to the ADRs and the CHANGELOG); user docs never need developer docs; developer docs cover security, modularity, extensibility and scaling/HPC; installs from PyPI
+- [ ] 10a. Purpose audit before the release (D31): module docstrings open with their role for the calculation (step history moves to the ADRs and the CHANGELOG); user docs never need developer docs; developer docs cover security, modularity, extensibility and scaling/HPC; installs from PyPI; least privilege: ADR 0004 ends and the data root becomes the project folder itself, checked with the golden tests on `tests/data/phe_tyr/` (ADR 0007); delete `bin/manager_etdac.py` and `tests/tester.sh` (kept until this audit)
 
 ## Open questions
 
@@ -123,6 +130,7 @@ Grouped by topic, the calculation first.
   same authorized path, never elsewhere. Same philosophy as ADR 0003/0004: least privilege,
   no lateral movement between folders. Needs its own ADR (supersedes the data-root default
   of ADR 0004 together with the `newFY_1-26` rename).
+- **Priority 1 for the next release, together with the HPC item: clean up `popmatrices/`.** `popmatrices/newFY_1-26/` does not survive: the notebook data moves to the part of the repository where it belongs, and `popmatrices/` stays only as a pointer (a short README saying where to go instead). Notebook paths that are still active are checked and moved first. This removes the reason for ADR 0004 (the Bigscale list files reaching `../newFY_1-26/`); until then the strict data root of ADR 0007 rejects those list files in the command, not in the notebooks.
 - Publishing outputs with hard links (`os.link`) needs a filesystem that supports them (not FAT, not some network mounts); check on cluster filesystems together with the HPC work (ADR 0003).
 - Hashes unique across all list files of one system (replaces the temporary hash policy of 1.2.0, ADR 0005). A large system can be split into many list files (e.g. 1 000 000 samples in 100 files); a hash must then be unique across all of them, not only within one list file, and hashes will be longer than the 9 characters recommended now. Needs a revision of ADR 0005 together with the design of multi-file runs.
 
@@ -130,7 +138,7 @@ Grouped by topic, the calculation first.
 
 - CI must handle one lock file per Python version (the lock is compiled for one interpreter); decide at step 9.
 - pandas lower bound (>= 2.1) is untested; the golden check passed on pandas 3.0. Test minimum versions in CI at step 9.
-- Rename `newFY_1-26`, then expose `--data-root`.
+- Rename `newFY_1-26`, then expose `--data-root`: superseded by the `popmatrices/` clean-up (Scale and HPC, priority 1); authorized folders outside the project belong to the HPC design.
 - Delete the `workshop_tester` branch (not need it anymore).
 - Generic names in code and tests: the test data is Phe–Tyr, the variables are not. Fixtures and variables named after the test system (e.g. `phe_tyr_dir`) change slowly to generic names (e.g. `pairfrag_dir` or `pairmol_dir`; `molfrag1`, `molfrag2` for the two fragments). The data folder `tests/data/phe_tyr/` keeps its name, because it describes the data. Related: the `resA`/`resB` file names (Science and features).
 - Reduced real dataset, committed, so CI runs the golden test.
@@ -140,4 +148,4 @@ Grouped by topic, the calculation first.
 ### Hardening
 
 - Size limits (10 000 list entries, 50 MB per CSV) configurable; fixed values become defaults (ADR 0005). A warning zone for CSV sizes, like the one for list entries (10 001 to 10 100), can be added at the same time.
-- Outputs from other jobs or systems in the same output folder: today the program warns and keeps the old result as `_oldversionN`, because it cannot tell whether the result belongs to the same system. A real solution is to discuss, together with unique output IDs: e.g. one output folder per system or job, comparing the provenance of the existing file (ADR 0006 input hashes) with the current run, or refusing to write into a folder that belongs to another system.
+- Outputs from other jobs or systems in the same output folder: today the program warns and keeps the old result as `_oldversionN`, because it cannot tell whether the result belongs to the same system. A real solution is to discuss, together with unique output IDs: e.g. one output folder per system or job, comparing the provenance of the existing file (ADR 0006 input hashes) with the current run, or refusing to write into a folder that belongs to another system. Partly addressed by ADR 0007 (one output folder per project folder); still open: two runs on the same project folder.
