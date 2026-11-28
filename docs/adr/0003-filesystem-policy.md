@@ -1,6 +1,6 @@
 # ADR 0003: Filesystem policy: least privilege, never overwrite
 
-- Status: accepted; default data root amended by ADR 0004; revised 2026-11-27 during step 5e (rotation details: number, pairs, warning, no-overwrite rename, output name and folder checks; atomic write published with a hard link instead of a rename; see the implementation notes)
+- Status: accepted; default data root amended by ADR 0004; revised 2026-11-27 during step 5e (rotation details: number, pairs, warning, no-overwrite rename, output name and folder checks; atomic write published with a hard link instead of a rename; see the implementation notes); output folder revised 2026-11-28 by ADR 0007 (always `etdac_outputs/` inside the project folder, no `--output-dir`)
 - Date: 2026-11-26
 
 ## Context

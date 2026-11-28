@@ -1,6 +1,6 @@
 # ADR 0004: Temporary default data root is the parent of the logs folder
 
-- Status: accepted
+- Status: accepted; ends before the PyPI release (ADR 0007, step 10a)
 - Date: 2026-11-26
 - Supersedes: the default data root in ADR 0003 (the rest of ADR 0003 still applies)
 
