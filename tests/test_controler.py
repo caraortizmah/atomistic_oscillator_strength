@@ -307,6 +307,12 @@ def test_missing_data_root_is_rejected(tree: dict[str, Path]) -> None:
         Controler(tree["tmp"] / "nowhere")
 
 
+def test_missing_logs_folder_is_an_input_error(tree: dict[str, Path]) -> None:
+    """Boundary pair with test_default_data_root_is_the_parent_of_the_logs_folder (step 6.1)."""
+    with pytest.raises(InputError, match="logs folder not found: '.*nowhere'"):
+        default_data_root(tree["root"] / "nowhere")
+
+
 # =====================================================================================
 # Loading the CSV files (step 5c, bullet 3)
 # =====================================================================================

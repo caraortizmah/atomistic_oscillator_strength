@@ -275,8 +275,14 @@ def default_data_root(logs_path: Path | str) -> Path:
 
     Temporary rule until newFY_1-26 is renamed; then a new ADR returns the default to the
     logs folder itself and exposes --data-root. Kept in one function so the change is one line.
+
+    Raises:
+        InputError: the logs folder does not exist.
     """
-    return Path(logs_path).resolve(strict=True).parent
+    try:
+        return Path(logs_path).resolve(strict=True).parent
+    except (OSError, RuntimeError):
+        raise InputError(f"logs folder not found: {untrusted(str(logs_path))}") from None
 
 
 class InputRecord(NamedTuple):
