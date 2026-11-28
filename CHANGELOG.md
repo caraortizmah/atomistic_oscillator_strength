@@ -110,6 +110,10 @@ project uses [Semantic Versioning](https://semver.org/).
 - `setup.py`: duplicated package discovery from `pyproject.toml` with conflicting settings.
 - `requirements.txt`: duplicated the dev extras, had a typo (`pytest-conv`) and listed unused packages.
 
+### Security
+
+- `bin/manager_etdac.py`: removed the `mkdir -p` run through a shell (`shell=True`) with a path typed by the user (command injection, CWE-78); the output folder is created by `outputs.prepare_outputs` with `os.makedirs` (ADR 0003). The ruff security rules (`S`, step 8) will check the whole code for shell calls.
+
 ## [1.1.0]
 
 Tagged in git; no changelog was kept before this file.
