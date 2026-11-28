@@ -35,6 +35,29 @@ def _reset_package_logger() -> Iterator[None]:
 # --- untrusted(): ADR 0005 message safety -------------------------------------------
 
 
+# --- untrusted_path(): complete paths, still escaped (decision of step 6.3) -----------
+
+
+def test_path_limit_is_the_linux_path_maximum() -> None:
+    assert PATH_LIMIT == 4096
+
+
+def test_untrusted_path_shows_a_long_path_whole() -> None:
+    path = Path("/cluster/project") / ("a" * 200) / "etdac_outputs" / "data_etdac_matrix.h5"
+    assert untrusted_path(path) == repr(str(path))
+
+
+@pytest.mark.parametrize(("length", "whole"), [(PATH_LIMIT - 2, True), (PATH_LIMIT - 1, False)])
+def test_untrusted_path_boundary(length: int, whole: bool) -> None:
+    """repr() adds two quotes: a path of PATH_LIMIT - 2 characters is shown whole, one more is cut."""
+    path = "/" + "a" * (length - 1)
+    assert (untrusted_path(path) == repr(path)) is whole
+
+
+def test_untrusted_path_still_escapes_control_characters() -> None:
+    assert untrusted_path("/data/a\nINFO: forged\x1b[31m") == "'/data/a\\nINFO: forged\\x1b[31m'"
+
+
 def test_untrusted_shows_the_value_with_repr() -> None:
     assert untrusted("f10") == "'f10'"
     assert untrusted("f10\nINFO: forged") == "'f10\\nINFO: forged'"  # newline visible, not executed

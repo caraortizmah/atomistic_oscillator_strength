@@ -307,6 +307,14 @@ def test_missing_data_root_is_rejected(tree: dict[str, Path]) -> None:
         Controler(tree["tmp"] / "nowhere")
 
 
+def test_a_long_missing_logs_folder_is_named_whole(tree: dict[str, Path]) -> None:
+    """Paths in messages are complete (untrusted_path), so the user can see which folder is meant."""
+    folder = tree["root"] / ("project_" * 20) / "nowhere"
+    with pytest.raises(InputError) as error:
+        default_data_root(folder)
+    assert repr(str(folder)) in str(error.value)
+
+
 def test_missing_logs_folder_is_an_input_error(tree: dict[str, Path]) -> None:
     """Boundary pair with test_default_data_root_is_the_parent_of_the_logs_folder (step 6.1)."""
     with pytest.raises(InputError, match="logs folder not found: '.*nowhere'"):
