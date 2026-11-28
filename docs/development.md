@@ -14,12 +14,13 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 | `validation.py` | the input rules: used while reading (hashes, CSV structure and values, population sums) and by `etdac_batch` (the same samples in all three inputs) | raw lines and cells; the three sets of hashes | nothing, or an `InputError` / a warning |
 | `outputs.py` | writing the results: `prepare_outputs`, `write_etdac_h5` | the results and `inputs_read` | `etdac_outputs/data_etdac_matrix.h5` |
 | `config.py` | the run settings: `ConfigMan` (the three list files and the logs folder, i.e. the project folder); checks nothing itself | the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`) | `list_files()`: the paths of the three list files; `output_dir()`: `etdac_outputs/` inside the logs folder, the only place a run writes (ADR 0007) |
+| `cli.py` | the `qm-etdac` command: `main(argv)` parses the arguments, configures logging (console, then the run log next to the results) and runs `Scheme`; `InputError`/`OutputError` become one `ERROR:` line and exit code 1 | the command line | exit code; results and run log in `LOGS/etdac_outputs/` |
 | `logging_setup.py` | log configuration for the program entry point; `untrusted()` for values in messages | verbosity, log file path | configured loggers |
 | `errors.py` | `InputError` (bad input files), `OutputError` (unusable output location) | | |
 
 Terms: the third input is called **oscillator strengths** in the code, in the CSV files (`corevirt_fosce`, f = oscillator strength) and in ORCA. The user documentation and the program's messages to users call it **core-electron transition intensities**.
 
-Not working yet (notebook leftovers, rebuilt in the next steps): `cli.py` (the `qm-etdac` command, step 6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
+Not working yet (notebook leftovers, rebuilt in the next steps): the `auto` and `check` modes of `qm-etdac` and the `qm-etdac-test` command (steps 6.4 to 6.6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
 
 ### What each part receives and gives back
 
@@ -169,6 +170,7 @@ Then: delete `tests/notebook_reference.py` and `tests/test_notebook_equivalence.
 - Every module logs through its own logger: `logger = logging.getLogger(__name__)`. Modules never configure logging; only the program entry point calls `qm_etdac_calculator.logging_setup.configure_logging()`.
 - Console (stderr): INFO and above by default; DEBUG with `--verbose` or `--debug`. `--debug` also shows full tracebacks (CLI, step 6).
 - Log file: every run writes a DEBUG log next to its results (`data_etdac_matrix.log`), rotated together with the `.h5` file and never overwritten (ADR 0003); together with the provenance attributes (ADR 0006) it records how each result was produced.
+- Known limit: the run log is opened after the output folder is prepared, because only then is its name free. The WARNING that an earlier result was kept as `_oldversionN` is therefore shown on the console but not written to the new run log.
 - No `NullHandler` on purpose: when the package is used without configuration (e.g. from a notebook), Python still prints WARNING and above, so validation warnings are never lost.
 - Values that come from input files go into messages through `untrusted()` (see section 5).
 - Write log calls as `logger.debug("%s: …", value)`, not with f-strings: the text is only built if the message is actually emitted.

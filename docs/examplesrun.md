@@ -21,18 +21,23 @@ Regarding running the ETDAC calculator, there are two modes of doing it:
 ### 1. noauto mode
 
 ```bash
-qm-etdac noauto --list-input 'file_log1' 'file_log2' 'file_log3' --paths-inout 'logfiles_path' 'output_path'
+qm-etdac noauto --list-input F1 F2 F3 [--paths-inout LOGS] [--verbose | --debug]
 ```
 
-where the first three files (`--list-input` group) are a list of file paths with an identification per file.
-The first type of log file corresponds to the core MOs population.
-The second type of log file corresponds to the virtual MOs population
-The third type of log file corresponds to the electron transition intensities (core to virtual) MOs
-The third type of information is an intermediate step. Find further about it in the theory in the equations 4th and 5th in this [xray spectrocopy publication](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c).
+- `F1`, `F2`, `F3`: the three list files, in this order: core-MO populations, virtual-MO populations, core-electron transition intensities. Their format is described in [input-format.md](input-format.md); the theory is in equations 4 and 5 of the [publication](https://pubs.rsc.org/en/content/articlelanding/2025/cp/d4cp04615c).
+- `LOGS`: the project folder that contains the three list files (see [Project folder](input-format.md#project-folder)). Without `--paths-inout`, the folder where you run the command.
+- The results go to `LOGS/etdac_outputs/`: `data_etdac_matrix.h5` and the run log `data_etdac_matrix.log`. An earlier result there is kept as `data_etdac_matrix_oldversionN`, never overwritten.
+- `--verbose` shows more detail on the screen; `--debug` also shows the full error trace, useful when reporting a problem.
+- The older form `--paths-inout LOGS OUTPUT` is rejected: the output folder is no longer chosen, it is always `LOGS/etdac_outputs/`.
 
-the second two files (`--paths-inout` group) are the path where the three log files of the first group are placed and the path were the output of the calculation in H5 format will be placed.
+Example with the Phe-Tyr data shipped in the repository:
 
-More information regarding the formats of these files in [examples folder](../test/examples/).
+```bash
+cd tests/data/phe_tyr
+qm-etdac noauto --list-input resA_MOcore_list.log resB_MOvirt_list.log corevirt_fosce_AB_list.log
+```
+
+If an input is wrong, the program prints one line starting with `ERROR:`, writes no new result and stops with exit code 1. The run log in `etdac_outputs/` records the same message.
 
 ### 2. auto mode
 
