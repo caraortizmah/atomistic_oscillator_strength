@@ -29,9 +29,9 @@ def test_documented_keys_build_the_settings() -> None:
     assert dataclasses.asdict(config) == SETTINGS
 
 
-def test_output_folder_defaults_to_etdac_outputs() -> None:
-    settings = {key: value for key, value in SETTINGS.items() if key != "outputpath"}
-    assert ConfigMan(**settings).outputpath == DEFAULT_OUTPUT_DIR == "etdac_outputs"
+def test_output_folder_is_etdac_outputs_inside_the_logs_folder() -> None:
+    assert ConfigMan(**SETTINGS).output_dir() == Path("tests/data/phe_tyr") / "etdac_outputs"
+    assert DEFAULT_OUTPUT_DIR == "etdac_outputs"
 
 
 @pytest.mark.parametrize("missing", ["corepop", "virtpop", "etranscv", "logspath"])
@@ -41,9 +41,11 @@ def test_a_missing_required_setting_is_rejected(missing: str) -> None:
         ConfigMan(**settings)
 
 
-def test_an_unknown_setting_is_rejected() -> None:
-    with pytest.raises(TypeError, match="corepopp"):
-        ConfigMan(**SETTINGS, corepopp="typo.log")
+@pytest.mark.parametrize("unknown", ["corepopp", "outputpath"])
+def test_an_unknown_setting_is_rejected(unknown: str) -> None:
+    """outputpath was a setting until step 6.2; the output folder is no longer chosen (ADR 0007)."""
+    with pytest.raises(TypeError, match=unknown):
+        ConfigMan(**SETTINGS, **{unknown: "somewhere"})
 
 
 def test_settings_cannot_change_during_a_run() -> None:
