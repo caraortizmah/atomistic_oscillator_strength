@@ -9,6 +9,7 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 | Module | Role | Receives | Gives back |
 |--------|------|----------|------------|
 | `etdac_operations.py` | **science core**: the ETDAC calculation. `etdac_matrix` (one sample), `Operations.etdac_batch` (all samples) | three `{hash: DataFrame}` dicts: core-MO populations, virtual-MO populations, core-electron transition intensities | `{hash: ETDAC matrix}` (core atom × virtual atom) |
+| `etdac_calculator.py` | one run from start to end: `Scheme(config).prepare_outputs()`, then `run(paths)` | `ConfigMan` (and optionally `Operations`) | the results, written to `paths.h5` with provenance; also returned as `{hash: ETDAC matrix}` |
 | `gate_controler.py` | reading the inputs: `Controler(data_root).load_dict_data(list_file, index_col)` | a list file and the CSV files it names | `{hash: DataFrame}`; `Controler.inputs_read` (path and SHA-256 of every file used) |
 | `validation.py` | the input rules: used while reading (hashes, CSV structure and values, population sums) and by `etdac_batch` (the same samples in all three inputs) | raw lines and cells; the three sets of hashes | nothing, or an `InputError` / a warning |
 | `outputs.py` | writing the results: `prepare_outputs`, `write_etdac_h5` | the results and `inputs_read` | `etdac_outputs/data_etdac_matrix.h5` |
@@ -18,7 +19,7 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 
 Terms: the third input is called **oscillator strengths** in the code, in the CSV files (`corevirt_fosce`, f = oscillator strength) and in ORCA. The user documentation and the program's messages to users call it **core-electron transition intensities**.
 
-Not working yet (notebook leftovers, rebuilt in the next steps): `etdac_calculator.py` (`Scheme`, the orchestration, step 5f), `cli.py` (the `qm-etdac` command, step 6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
+Not working yet (notebook leftovers, rebuilt in the next steps): `cli.py` (the `qm-etdac` command, step 6), `etdac_editprinter.py` (heatmap selection helpers, step 6b) and the scripts in `bin/`.
 
 ### What each part receives and gives back
 
