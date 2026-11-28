@@ -282,7 +282,7 @@ def default_data_root(logs_path: Path | str) -> Path:
     try:
         return Path(logs_path).resolve(strict=True).parent
     except (OSError, RuntimeError):
-        raise InputError(f"logs folder not found: {untrusted(str(logs_path))}") from None
+        raise InputError(f"logs folder not found: {untrusted_path(logs_path)}") from None
 
 
 class InputRecord(NamedTuple):
@@ -306,9 +306,9 @@ class Controler:
         try:
             root = Path(data_root).resolve(strict=True)
         except (OSError, RuntimeError):
-            raise InputError(f"data root not found: {untrusted(str(data_root))}") from None
+            raise InputError(f"data root not found: {untrusted_path(data_root)}") from None
         if not root.is_dir():
-            raise InputError(f"data root is not a folder: {untrusted(str(root))}")
+            raise InputError(f"data root is not a folder: {untrusted_path(root)}")
         self.data_root = root
         self._inputs: list[InputRecord] = []
 
@@ -338,13 +338,13 @@ class Controler:
         try:
             list_path = Path(list_file).resolve(strict=True)
         except (OSError, RuntimeError):
-            raise InputError(f"list file not found: {untrusted(str(list_file))}") from None
+            raise InputError(f"list file not found: {untrusted_path(list_file)}") from None
         if not self._is_inside(list_path):
             raise InputError(
-                f"list file is outside the data root {untrusted(str(self.data_root))}: {untrusted(str(list_path))}"
+                f"list file is outside the data root {untrusted_path(self.data_root)}: {untrusted_path(list_path)}"
             )
         if not list_path.is_file():
-            raise InputError(f"list file is not a regular file: {untrusted(str(list_path))}")
+            raise InputError(f"list file is not a regular file: {untrusted_path(list_path)}")
 
         base = list_path.parent
         resolved_entries: list[ResolvedEntry] = []
@@ -362,7 +362,7 @@ class Controler:
                 raise InputError(f"{prefix}: cannot resolve path (symlink loop?): {untrusted(entry.path)}") from None
             if not self._is_inside(resolved):
                 raise InputError(
-                    f"{prefix}: path is outside the data root {untrusted(str(self.data_root))}: {untrusted(entry.path)}"
+                    f"{prefix}: path is outside the data root {untrusted_path(self.data_root)}: {untrusted(entry.path)}"
                 )
             if not resolved.is_file():
                 raise InputError(f"{prefix}: not a regular file: {untrusted(entry.path)}")

@@ -58,7 +58,7 @@ import pandas as pd
 from . import __version__
 from .errors import OutputError
 from .gate_controler import InputRecord
-from .logging_setup import untrusted
+from .logging_setup import untrusted, untrusted_path
 from .validation import HASH_PATTERN
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def _move_no_overwrite(source: Path, target: Path) -> None:
     except FileExistsError:
         raise OutputError(
             f"cannot keep {untrusted(source.name)}: {untrusted(target.name)} already exists "
-            f"(another run may be writing into {untrusted(str(source.parent))} at the same time)"
+            f"(another run may be writing into {untrusted_path(source.parent)} at the same time)"
         ) from None
     source.unlink()
 
@@ -113,9 +113,9 @@ def prepare_outputs(output_dir: Path | str = DEFAULT_OUTPUT_DIR, stem: str = DEF
         )
     given = Path(output_dir)
     if given.is_symlink():
-        raise OutputError(f"output folder {untrusted(str(given))} is a symbolic link; use a real folder")
+        raise OutputError(f"output folder {untrusted_path(given)} is a symbolic link; use a real folder")
     if given.exists() and not given.is_dir():
-        raise OutputError(f"output folder {untrusted(str(given))} is not a folder")
+        raise OutputError(f"output folder {untrusted_path(given)} is not a folder")
     os.makedirs(given, exist_ok=True)
     folder = given.resolve(strict=True)
 
@@ -130,7 +130,7 @@ def prepare_outputs(output_dir: Path | str = DEFAULT_OUTPUT_DIR, stem: str = DEF
             "or system: check that this is the right output folder",
             ", ".join(untrusted(p.name) for p in existing),
             "exists" if len(existing) == 1 else "exist",
-            untrusted(str(folder)),
+            untrusted_path(folder),
             ", ".join(untrusted(p.name) for p in kept),
         )
     return OutputPaths(h5=folder / f"{stem}.h5", log=folder / f"{stem}.log")
@@ -187,7 +187,7 @@ def write_etdac_h5(results: Mapping[str, pd.DataFrame], path: Path, inputs: Sequ
         if HASH_PATTERN.fullmatch(hash_) is None:
             raise ValueError(f"invalid sample hash {untrusted(hash_)}")
     if path.exists() or path.is_symlink():
-        raise OutputError(f"{untrusted(path.name)} already exists in {untrusted(str(path.parent))}; it is never overwritten")
+        raise OutputError(f"{untrusted(path.name)} already exists in {untrusted_path(path.parent)}; it is never overwritten")
 
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
     try:
@@ -198,9 +198,9 @@ def write_etdac_h5(results: Mapping[str, pd.DataFrame], path: Path, inputs: Sequ
             os.link(temporary, path)  # FileExistsError if the name appeared meanwhile: never overwrites
         except FileExistsError:
             raise OutputError(
-                f"{untrusted(path.name)} appeared in {untrusted(str(path.parent))} while this run was writing it "
+                f"{untrusted(path.name)} appeared in {untrusted_path(path.parent)} while this run was writing it "
                 f"(another run?); it already exists and is never overwritten"
             ) from None
     finally:
         temporary.unlink(missing_ok=True)
-    logger.info("wrote %d sample(s) to %s", len(results), untrusted(str(path)))
+    logger.info("wrote %d sample(s) to %s", len(results), untrusted_path(path))

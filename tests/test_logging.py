@@ -10,9 +10,11 @@ import pytest
 
 from qm_etdac_calculator.logging_setup import (
     PACKAGE_LOGGER,
+    PATH_LIMIT,
     SafeFormatter,
     configure_logging,
     untrusted,
+    untrusted_path,
 )
 
 CHILD = f"{PACKAGE_LOGGER}.some_module"  # any module logger inside the package
