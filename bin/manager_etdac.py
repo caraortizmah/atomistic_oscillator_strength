@@ -11,7 +11,6 @@ Usage:
 
 import os
 import sys
-import subprocess
 import argparse
 import json
 from pathlib import Path
@@ -97,16 +96,7 @@ def main():
         print(f"Errors: {', '.join(config.errors)}")
         return 1
 
-    if not config.checker_outpath():
-        path_cmd = f"mkdir -p {args.path_output}"
-        print(f"New path will be created: {args.path_output}\n")
-        
-        try:
-            subprocess.run(path_cmd, shell=True, check=False)
-        except Exception as e:
-            #logger.error(f"Error executing ETDAC program: {str(e)}\n")
-            print(f"Error creating path for the results: {str(e)}\n")
-            return 1
+    # The output folder is created by outputs.prepare_outputs() with os.makedirs, never a shell (ADR 0003).
 
     if config.load():
         #logger.info("="*70)
