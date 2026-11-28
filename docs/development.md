@@ -15,7 +15,7 @@ The program calculates the ETDAC matrix described in the [README](../README.md);
 | `outputs.py` | writing the results: `prepare_outputs`, `write_etdac_h5` | the results and `inputs_read` | `etdac_outputs/data_etdac_matrix.h5` |
 | `config.py` | the run settings: `ConfigMan` (the three list files and the logs folder, i.e. the project folder); checks nothing itself | the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`) | `list_files()`: the paths of the three list files; `output_dir()`: `etdac_outputs/` inside the logs folder, the only place a run writes (ADR 0007) |
 | `cli.py` | the `qm-etdac` command: `main(argv)` parses the arguments, configures logging (console, then the run log next to the results) and runs `Scheme`; `InputError`/`OutputError` become one `ERROR:` line and exit code 1 | the command line | exit code; results and run log in `LOGS/etdac_outputs/` |
-| `logging_setup.py` | log configuration for the program entry point; `untrusted()` for values in messages | verbosity, log file path | configured loggers |
+| `logging_setup.py` | log configuration for the program entry point; `untrusted()` for values from input files, `untrusted_path()` for paths in messages | verbosity, log file path | configured loggers |
 | `errors.py` | `InputError` (bad input files), `OutputError` (unusable output location) | | |
 
 Terms: the third input is called **oscillator strengths** in the code, in the CSV files (`corevirt_fosce`, f = oscillator strength) and in ORCA. The user documentation and the program's messages to users call it **core-electron transition intensities**.
@@ -172,7 +172,7 @@ Then: delete `tests/notebook_reference.py` and `tests/test_notebook_equivalence.
 - Log file: every run writes a DEBUG log next to its results (`data_etdac_matrix.log`), rotated together with the `.h5` file and never overwritten (ADR 0003); together with the provenance attributes (ADR 0006) it records how each result was produced.
 - Known limit: the run log is opened after the output folder is prepared, because only then is its name free. The WARNING that an earlier result was kept as `_oldversionN` is therefore shown on the console but not written to the new run log.
 - No `NullHandler` on purpose: when the package is used without configuration (e.g. from a notebook), Python still prints WARNING and above, so validation warnings are never lost.
-- Values that come from input files go into messages through `untrusted()` (see section 5).
+- Values that come from input files go into messages through `untrusted()` (see section 5). Paths go through `untrusted_path()`: escaped the same way, but complete up to 4096 characters (the Linux path limit), so a message always shows which folder or file is meant.
 - Write log calls as `logger.debug("%s: …", value)`, not with f-strings: the text is only built if the message is actually emitted.
 
 In tests, the `caplog` fixture captures log records:
@@ -249,7 +249,7 @@ flowchart LR
 | reject control, zero-width and bidirectional characters | "Trojan Source" (CVE-2021-42574), hidden content, terminal codes | `gate_controler.read_text_lines` | ADR 0005 |
 | explicit number pattern before `float()`; no `nan`, `inf`, `=`, `+`, `@` at the start | NaN spreading silently; CSV/formula injection when values reach a spreadsheet | `validation.check_csv_values` | ADR 0005 |
 | check the raw text before pandas parses it | parsers deciding silently (renamed duplicate labels, empty cells to NaN, quoting) | `validation.check_csv_structure` | ADR 0005 |
-| `untrusted()` (repr, truncated) and `SafeFormatter` (escapes control characters) | log and terminal injection (CWE-117) | `logging_setup` | ADR 0005 |
+| `untrusted()` (repr, truncated), `untrusted_path()` (repr, complete paths) and `SafeFormatter` (escapes control characters) | log and terminal injection (CWE-117) | `logging_setup` | ADR 0005 |
 | never overwrite: `_oldversionN` rotation with a warning, temporary file, publish with `os.link` | lost results; a second run replacing a result | `outputs` | ADR 0003 |
 | provenance: program, version, UTC time, SHA-256 of every input file | untraceable results | `outputs.write_etdac_h5` | ADR 0006 |
 | hashed lock file | tampered or substituted dependencies (supply chain) | `requirements-dev.txt` | ADR 0001 |

@@ -77,6 +77,7 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Paths in messages are shown complete (`logging_setup.untrusted_path`, up to 4096 characters) instead of being cut after 80 characters, still escaped with `repr()`; 15 messages in `gate_controler.py` and `outputs.py`. Values from file contents keep the short limit of `untrusted()`.
 - `qm-etdac noauto` works again, inside the package (step 6.3): `cli.main` replaces the call of `bin/manager_etdac.py`; `--list-input F1 F2 F3 [--paths-inout LOGS]`, with the current folder as default; `--verbose`, `--debug`; results and run log in `LOGS/etdac_outputs/`; input and output problems are one `ERROR:` line with exit code 1 (`--debug` adds the traceback). A second `--paths-inout` value (the old output folder) is rejected with an explanation. `docs/examplesrun.md`: noauto section rewritten, dead `examples` link removed.
 - Project folder (ADR 0007, step 6.2): a run writes only to `etdac_outputs/` inside the logs folder (`ConfigMan.output_dir()`); the output folder is no longer a setting, and `outputpath` is rejected as an unknown key. Before, the default was `./etdac_outputs/` in the folder where the program ran, and any folder could be chosen. `docs/input-format.md`: "Project folder" section. `.gitignore` ignores `etdac_outputs/`.
 - `default_data_root`: a logs folder that does not exist gives an `InputError` ("logs folder not found") instead of a bare `FileNotFoundError` traceback (step 6.1).

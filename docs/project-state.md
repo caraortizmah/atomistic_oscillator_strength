@@ -114,6 +114,11 @@ Decisions keep their IDs; they are grouped by topic, the calculation first.
 
 Grouped by topic, the calculation first.
 
+### First for the next release: the function of the program and its messages
+
+- **Rotate an earlier result only when a new one is ready (a functional patch, e.g. 1.2.1).** Today a run renames the earlier `data_etdac_matrix.h5`/`.log` to `_oldversionN` first, then opens the run log, then reads the inputs (decision of 5f, ADR 0003). Two effects, found in step 6.3: (1) after a run that fails on its inputs there is no current result, only `_oldversionN` files and the failed run's log, and every failed attempt adds another pair, so a notebook or script that reads the fixed name finds nothing; (2) the WARNING about the rotation reaches the console but not the new run log. No data is lost. Idea: validate the inputs first, or write the run log under a temporary name and rotate only when the new result is published. It changes the output protection (`outputs.py`, the order in `Scheme` and the CLI, about 15 rotation tests, a dated revision of ADR 0003), so it is a design change of its own and not part of the CLI step.
+- Complete paths in messages without any injection risk. Since step 6.3 paths are shown complete (`untrusted_path`, up to 4096 characters) and escaped with `repr()`, and every log line goes through `SafeFormatter`; the escaping, not a length cap, is the defence. To think about: show paths relative to the project folder or data root (short, complete, and without the home folder, as in the provenance of ADR 0006); structured log lines (e.g. JSON lines) where a path is a separate, encoded field instead of text inside a sentence; a shell-safe form (`shlex.quote`) for paths the user may copy into a terminal.
+
 ### Science and features
 
 - Retire the notebook reference (`tests/notebook_reference.py`, `tests/test_notebook_equivalence.py`) once a validated release becomes the reference and the method changes; new ADR superseding ADR 0002 (criteria in `docs/development.md`).
