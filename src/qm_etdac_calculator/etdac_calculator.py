@@ -6,8 +6,9 @@ Read https://doi.org/10.1039/D4CP04615C :
 for the method. The calculation itself is in etdac_operations.py; this module only puts the
 parts together, in this order:
 
-1. prepare_outputs(): the output folder and the paths of the .h5 and .log files; an earlier
-   result is kept as `_oldversionN` (outputs.py, ADR 0003);
+1. prepare_outputs(): the output folder, always `etdac_outputs` inside the logs folder
+   (ADR 0007), and the paths of the .h5 and .log files; an earlier result is kept as
+   `_oldversionN` (outputs.py, ADR 0003);
 2. run(paths): one Controler reads the three list files and their CSV files (path policy and
    input rules, ADR 0003/0005), Operations.etdac_batch calculates every sample, and
    write_etdac_h5 writes the results with the provenance of every file read (ADR 0006).
@@ -38,7 +39,7 @@ class Scheme:
     Runs the ETDAC calculation for the settings of one run.
 
     Attributes:
-        config: which list files to read and where to write (ConfigMan).
+        config: which list files to read, and where they are (ConfigMan).
         operations: calculation options (default: Operations(), core matrix trimmed, ADR 0002).
     """
 
@@ -46,8 +47,8 @@ class Scheme:
     operations: Operations = field(default_factory=Operations)
 
     def prepare_outputs(self) -> OutputPaths:
-        """Create the output folder and keep any earlier result; returns the paths to write."""
-        return prepare_outputs(self.config.outputpath)
+        """Create `etdac_outputs` in the logs folder and keep any earlier result; returns the paths to write."""
+        return prepare_outputs(self.config.output_dir())
 
     def run(self, paths: OutputPaths) -> dict[str, pd.DataFrame]:
         """
