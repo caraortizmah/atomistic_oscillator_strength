@@ -8,12 +8,14 @@ Matrix using the parsed data of the xas-qmol-parser package.
 __version__ = "1.2.0.dev0"
 __author__ = "Carlos Ortiz-Mahecha"
 
+from .config import ConfigMan
 from .errors import InputError
 from .etdac_operations import Operations, etdac_matrix, nonzero_mo_matrix, remove_noncontrb
 from .gate_controler import Controler, default_data_root
 
-# ConfigMan, Scheme and cli are exported again once they are fixed (steps 5d-5f and 6).
+# Scheme and cli are exported again once they are fixed (steps 5f and 6).
 __all__ = [
+    "ConfigMan",
     "Controler",
     "InputError",
     "Operations",
