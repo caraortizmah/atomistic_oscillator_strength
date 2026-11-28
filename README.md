@@ -40,18 +40,17 @@ More options in [docs/installation.md](docs/installation.md).
 The `qm-etdac` command is being completed for release 1.2.0 ([docs/examplesrun.md](docs/examplesrun.md)). Until then, run the calculation from Python, here on the Phe–Tyr example data shipped with the tests:
 
 ```python
-from qm_etdac_calculator import Controler, Operations, default_data_root
-from qm_etdac_calculator.outputs import prepare_outputs, write_etdac_h5
+from qm_etdac_calculator import ConfigMan, Scheme
 
-logs = "tests/data/phe_tyr"  # the folder with the three list files
-reader = Controler(default_data_root(logs))
-core = reader.load_dict_data(f"{logs}/resA_MOcore_list.log", "num-1")
-virt = reader.load_dict_data(f"{logs}/resB_MOvirt_list.log", "num-1")
-osc = reader.load_dict_data(f"{logs}/corevirt_fosce_AB_list.log", "virt\\core")
-
-etdac = Operations().etdac_batch(core, virt, osc)  # {sample hash: core-atom x virtual-atom matrix}
-paths = prepare_outputs("etdac_outputs")
-write_etdac_h5(etdac, paths.h5, reader.inputs_read)
+config = ConfigMan(
+    corepop="resA_MOcore_list.log",       # core-MO populations
+    virtpop="resB_MOvirt_list.log",       # virtual-MO populations
+    etranscv="corevirt_fosce_AB_list.log",  # core-electron transition intensities
+    logspath="tests/data/phe_tyr",        # the folder with the three list files
+)
+scheme = Scheme(config)
+paths = scheme.prepare_outputs()  # etdac_outputs/; an earlier result is kept
+etdac = scheme.run(paths)         # {sample hash: core-atom x virtual-atom matrix}, also written to paths.h5
 ```
 
 Each sample in the `.h5` file is a group `sample_<hash>` with the dataset `ETDAC_matrix`. The file also records which program version made it and which input files were used.
