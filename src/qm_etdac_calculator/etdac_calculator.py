@@ -16,6 +16,10 @@ parts together, in this order:
 The two steps are separate so the program entry point can open the run log at paths.log
 before anything is read: modules only log, the entry point configures logging (D19). A run
 that fails on its inputs writes no .h5 file.
+
+check() (step 6.5, `qm-etdac check`) reads and validates the inputs exactly as run() does,
+including the rule that the three inputs contain the same samples, but calculates nothing and
+writes nothing. It cannot find problems of the output folder, which only a run meets.
 """
 
 from __future__ import annotations
@@ -28,6 +32,7 @@ from .config import ConfigMan
 from .etdac_operations import Operations
 from .gate_controler import Controler, default_data_root
 from .outputs import OutputPaths, prepare_outputs, write_etdac_h5
+from .validation import check_same_hashes
 
 POP_INDEX = "num-1"  # index column of the population files (atom number)
 OSC_INDEX = "virt\\core"  # index column of the oscillator-strength files (virtual MO)
@@ -62,11 +67,29 @@ class Scheme:
             InputError: the inputs break the input rules; nothing is written.
             OutputError: the result cannot be written without overwriting.
         """
+        reader, core, virt, etrans = self._read()
+        results = self.operations.etdac_batch(core, virt, etrans)
+        write_etdac_h5(results, paths.h5, reader.inputs_read)
+        return results
+
+    def check(self) -> int:
+        """
+        Read and validate the inputs as run() does; calculate and write nothing.
+
+        Returns:
+            The number of samples, present in all three inputs.
+        Raises:
+            InputError: the inputs break the input rules.
+        """
+        _, core, virt, etrans = self._read()
+        check_same_hashes({"core populations": core, "virtual populations": virt, "oscillator strengths": etrans})
+        return len(virt)
+
+    def _read(self) -> tuple[Controler, dict[str, pd.DataFrame], dict[str, pd.DataFrame], dict[str, pd.DataFrame]]:
+        """One Controler reads the three list files and their CSV files (path policy and input rules)."""
         reader = Controler(default_data_root(self.config.logspath))
         files = self.config.list_files()
         core = reader.load_dict_data(files.core, POP_INDEX)
         virt = reader.load_dict_data(files.virt, POP_INDEX)
         etrans = reader.load_dict_data(files.etrans, OSC_INDEX)
-        results = self.operations.etdac_batch(core, virt, etrans)
-        write_etdac_h5(results, paths.h5, reader.inputs_read)
-        return results
+        return reader, core, virt, etrans
