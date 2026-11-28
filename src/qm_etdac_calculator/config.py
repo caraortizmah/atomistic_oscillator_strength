@@ -1,15 +1,18 @@
 """
-Run settings of an ETDAC calculation: which three list files to read and where to write.
+Run settings of an ETDAC calculation: which three list files to read, and where they are.
 
-ConfigMan holds the five settings of a run under the documented keys (the keys of
+ConfigMan holds the four settings of a run under the documented keys (the keys of
 `qm-etdac auto` JSON files), so `ConfigMan(**settings)` builds it from such a dict:
 
 - corepop: list file of the core-MO population files
 - virtpop: list file of the virtual-MO population files
 - etranscv: list file of the core-electron transition intensity files
   (oscillator strengths, core to virtual MOs)
-- logspath: folder that contains the three list files
-- outputpath: output folder for the results (default `etdac_outputs`, ADR 0003)
+- logspath: folder that contains the three list files (the project folder)
+
+The results always go to `etdac_outputs` inside the logs folder (output_dir()); the output
+folder is not a setting, so a run cannot write anywhere else (least privilege, ADR 0007).
+`outputpath`, a setting until step 6.2, is now an unknown key.
 
 ConfigMan only holds settings; it opens no file. The list files and every file they name
 are checked when Controler reads them (path policy, ADR 0003/0004), so there is one place
@@ -42,9 +45,12 @@ class ConfigMan:
     virtpop: str
     etranscv: str
     logspath: str
-    outputpath: str = DEFAULT_OUTPUT_DIR
 
     def list_files(self) -> ListFiles:
         """The three list files, as paths inside the logs folder (not checked here)."""
         logs = Path(self.logspath)
         return ListFiles(core=logs / self.corepop, virt=logs / self.virtpop, etrans=logs / self.etranscv)
+
+    def output_dir(self) -> Path:
+        """The only folder a run writes to: `etdac_outputs` inside the logs folder (ADR 0007)."""
+        return Path(self.logspath) / DEFAULT_OUTPUT_DIR
