@@ -109,3 +109,29 @@ def test_the_given_operations_are_used(project: Path) -> None:
 
 def test_default_operations_trim_the_core_matrix(project: Path) -> None:
     assert _scheme(project).operations == Operations(trim_core=True)
+
+
+# --- Scheme.check(): validate without calculating or writing (step 6.5) ----------------
+
+
+def test_check_counts_the_samples_and_writes_nothing(project: Path) -> None:
+    data_root = project.parent
+    before = _files(data_root)
+    assert _scheme(project).check() == 52
+    assert _files(data_root) == before
+    assert not (project / "etdac_outputs").exists()
+
+
+def test_check_applies_the_same_samples_rule(project: Path) -> None:
+    """The cross-file rule of etdac_batch runs in check() too, although nothing is calculated."""
+    virt_list = project / "resB_MOvirt_list.log"
+    lines = virt_list.read_text(encoding="utf-8").splitlines(keepends=True)
+    virt_list.write_text("".join(lines[:-1]), encoding="utf-8")  # the last sample removed
+    with pytest.raises(InputError, match="samples differ between inputs"):
+        _scheme(project).check()
+
+
+def test_check_reports_an_input_error(project: Path) -> None:
+    scheme = Scheme(ConfigMan(**{**LIST_FILES, "virtpop": "missing_list.log"}, logspath=str(project)))
+    with pytest.raises(InputError, match="list file not found"):
+        scheme.check()
