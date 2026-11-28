@@ -10,15 +10,17 @@ __author__ = "Carlos Ortiz-Mahecha"
 
 from .config import ConfigMan
 from .errors import InputError
+from .etdac_calculator import Scheme
 from .etdac_operations import Operations, etdac_matrix, nonzero_mo_matrix, remove_noncontrb
 from .gate_controler import Controler, default_data_root
 
-# Scheme and cli are exported again once they are fixed (steps 5f and 6).
+# cli is exported again once it is fixed (step 6).
 __all__ = [
     "ConfigMan",
     "Controler",
     "InputError",
     "Operations",
+    "Scheme",
     "default_data_root",
     "etdac_matrix",
     "nonzero_mo_matrix",
