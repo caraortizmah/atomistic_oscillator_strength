@@ -96,3 +96,5 @@ popmatrices/*/
 # Re-include it after the *.csv, *.log and *.h5 rules above. Nothing else is affected.
 !tests/data/phe_tyr/
 !tests/data/phe_tyr/**
+# Results of runs are user data, never committed (ADR 0007), also inside the test data.
+etdac_outputs/
