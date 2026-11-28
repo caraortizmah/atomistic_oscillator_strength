@@ -8,7 +8,7 @@ The installed program provides two commands: `qm-etdac` runs the calculation, `q
 python -m qm_etdac_calculator.cli noauto --list-input F1 F2 F3
 ```
 
-There are two ways to run the calculation: with the settings on the command line (`noauto`) or in a JSON file (`auto`).
+There are two ways to run the calculation: with the settings on the command line (`noauto`) or in a JSON file (`auto`). A third mode, `check`, validates the inputs of a JSON file without calculating.
 
 ### 1. noauto mode
 
@@ -59,3 +59,18 @@ Example: save the JSON above as `run.json` in the repository folder and run:
 ```bash
 qm-etdac auto run.json
 ```
+
+### 3. check mode
+
+```bash
+qm-etdac check CONFIG.json [--verbose | --debug]
+```
+
+`check` reads the same JSON file as `auto` and checks the inputs exactly as a run would: the list files, every CSV file they name, and that the three inputs contain the same samples. It calculates nothing and writes nothing: no `etdac_outputs/` folder, no run log. Use it before a long run, or after editing list files.
+
+```bash
+qm-etdac check run.json
+# INFO: check passed: 52 samples, inputs valid; nothing calculated or written
+```
+
+A mistake in the inputs gives the same one line starting with `ERROR:` as a run, and exit code 1. `check` does not look at the output folder; problems there (for example `etdac_outputs` being a link) only appear when you run.
