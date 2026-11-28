@@ -77,6 +77,7 @@ project uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- `etdac_calculator.py` rewritten (step 5f): `Scheme(config)` runs one calculation in two steps, `prepare_outputs()` (output folder, earlier result kept) and `run(paths)` (one `Controler` reads the three inputs, `Operations.etdac_batch` calculates, `write_etdac_h5` writes with provenance); the notebook leftovers are removed. `Scheme` is exported from the package again; the README example uses it. End-to-end golden test in `tests/test_scheme.py`.
 - `config.py` rewritten (step 5f): `ConfigMan` holds the run settings under the documented keys (`corepop`, `virtpop`, `etranscv`, `logspath`, `outputpath`, default `etdac_outputs`), frozen; `list_files()` gives the three list files inside the logs folder. A missing or unknown key is an error. `ConfigMan` is exported from the package again.
 - `Operations.etdac_batch` checks that the three inputs contain the same samples: a sample missing
   from the virtual input was silently dropped before, one missing from the core input raised a bare

@@ -33,7 +33,7 @@ flowchart TD
     C -->|"inputs_read:<br/>(path, sha256)"| W
     P["outputs.prepare_outputs()"] -->|"paths of .h5 and .log"| W
     W --> H["data_etdac_matrix.h5<br/>sample_hash groups<br/>+ provenance"]
-    S["Scheme (step 5f), CLI (step 6):<br/>orchestration, configure_logging()"] -. calls .-> C
+    S["etdac_calculator.Scheme:<br/>orchestration;<br/>CLI (step 6): configure_logging()"] -. calls .-> C
     S -. calls .-> OP
     S -. calls .-> P
     S -. calls .-> W
