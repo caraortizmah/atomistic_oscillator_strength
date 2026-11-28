@@ -1,105 +1,50 @@
 """
-Configuration parameters for the electron transition decomposition atomic contribution
-(ETDAC) calculation.
+Run settings of an ETDAC calculation: which three list files to read and where to write.
+
+ConfigMan holds the five settings of a run under the documented keys (the keys of
+`qm-etdac auto` JSON files), so `ConfigMan(**settings)` builds it from such a dict:
+
+- corepop: list file of the core-MO population files
+- virtpop: list file of the virtual-MO population files
+- etranscv: list file of the core-electron transition intensity files
+  (oscillator strengths, core to virtual MOs)
+- logspath: folder that contains the three list files
+- outputpath: output folder for the results (default `etdac_outputs`, ADR 0003)
+
+ConfigMan only holds settings; it opens no file. The list files and every file they name
+are checked when Controler reads them (path policy, ADR 0003/0004), so there is one place
+that decides what may be read. A missing or unknown key is a TypeError from the constructor;
+reading a JSON file and reporting its mistakes to users is step 6 (CLI).
 """
 
-import os
-import re
-from typing import Dict, Optional, Tuple, List
+from __future__ import annotations
+
+from dataclasses import dataclass
 from pathlib import Path
+from typing import NamedTuple
+
+from .outputs import DEFAULT_OUTPUT_DIR
 
 
+class ListFiles(NamedTuple):
+    """The three list files of a run, in the order the calculation uses them."""
+
+    core: Path
+    virt: Path
+    etrans: Path
+
+
+@dataclass(frozen=True)
 class ConfigMan:
-    """
-    Manages the configuration parameters prior to load log files for the ETDAC calculation.
-    
-    This class is in an ongoing extension.
-    Mandatory parameters: path_logs_files, path_etdac_h5_file
-    Optional parameters: None
-    """
-    
-    def __init__(self, **kwargs: str):
-        """
-        Initialize ConfigMan with population files (core and virtual), 
-          electron transition file (core-virtual oscillator strength),
-          execution path and output path (same as execution path as defult).
-        
-        kwargs:
-            
-            'corepop': corepop_log_file =  File of path lists having core MOs population files
-            'virtpop': virtualpop_log_file = File of path lists having virtual MOs population files
-            'etranscv': etrans_log_file = File of path lists having core-virtual e- transitions files
-            'logspath': logs_path = Path to the log files (execution path by defult)
-            'outputpath': output_path = Path to the H5 output file
-        """
-        self.corelog_file = kwargs['corepop']
-        self.virtualog_file = kwargs['virtpop']
-        self.etranslog_file = kwargs['etranscv']
-        self.logs_path = kwargs['logspath']
-        self.output_path = kwargs['outputpath']
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-    
-    def checker_outpath(self) -> bool:
-        """
-        Check if a path already exists.
-        Output path is created if not exists
-        
-        Returns:
-            bool: True if successful, False if errors occurred
-        """
-        if not os.path.isdir(self.output_path):
-            self.warnings.append(f"Output path not found: {self.output_path}. ")
-            return False
-        
-        return True
+    """The settings of one run; frozen, so they cannot change while the run uses them."""
 
-    def checker_log_file(self, path: str) -> bool:
-        """
-        Check if a mandatory log file exists
-        
-        Returns:
-            bool: True if successful, False if errors occurred
-        """
-        if not os.path.isfile(path):
-            self.errors.append(f"Log file {path} not found.\n")
-            return False
-        
-        try:
-            with open(path, 'r') as f:
-                f.read()
-            return True
-        except Exception as e:
-            self.errors.append(f"Failed to read log file: {str(e)}\n")
-            return False
-    
-    def checker_logs(self) -> bool:
-        """
-        Check if all log files exist and cand be read in the execution directory
-        
-        Returns:
-            bool: True if successful, False if errors occurred
-        """
-        
-        errors = 0
+    corepop: str
+    virtpop: str
+    etranscv: str
+    logspath: str
+    outputpath: str = DEFAULT_OUTPUT_DIR
 
-        if not self.checker_log_file(os.path.join(self.logs_path, self.corelog_file)): errors += 1
-        
-        if not self.checker_log_file(os.path.join(self.logs_path, self.virtualog_file)): errors += 1
-        
-        if not self.checker_log_file(os.path.join(self.logs_path, self.etranslog_file)): errors += 1
-    
-        return errors == 0
-    
-    def load(self) -> bool:
-        """
-        Load the three log files.
-        
-        Returns:
-            bool: True if successful, False if errors occurred
-        """
-        if self.checker_logs():
-            #call gate_controler.py
-            return True
-        else:
-            return self.checker_logs()
+    def list_files(self) -> ListFiles:
+        """The three list files, as paths inside the logs folder (not checked here)."""
+        logs = Path(self.logspath)
+        return ListFiles(core=logs / self.corepop, virt=logs / self.virtpop, etrans=logs / self.etranscv)
