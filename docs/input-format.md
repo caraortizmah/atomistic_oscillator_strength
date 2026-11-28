@@ -20,6 +20,21 @@ Each matrix is one CSV file. Three **list files** say which CSV file belongs to 
 
 In the example names, A and B label the two molecular fragments (e.g. Phe and Tyr), not core and virtual. A complete, real example is in `tests/data/phe_tyr/`.
 
+## Project folder
+
+Keep everything for one system in one folder, the **project folder**:
+
+```
+my_project/
+  resA_MOcore_list.log          # the three list files
+  resB_MOvirt_list.log
+  corevirt_fosce_AB_list.log
+  inputs/                       # the CSV files named in the list files
+  etdac_outputs/                # created by the program: results (.h5) and run log (.log)
+```
+
+Give the program this folder, or run it inside the folder. Paths in the list files are relative to the list file and must not leave the data folder (see the common mistakes below). The program writes only into `etdac_outputs/` of the project folder; an earlier result there is kept as `_oldversionN`, never overwritten. Where the program is installed does not matter, and uninstalling it never touches your project folders. `tests/data/phe_tyr/` is a complete example.
+
 ## List files
 
 ```
