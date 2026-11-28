@@ -12,6 +12,8 @@ are never lost (no NullHandler on purpose; decision D19 in docs/project-state.md
 
 Security (ADR 0005, CWE-117 log injection):
 - untrusted(value) shows an untrusted value with repr(), truncated, inside a message.
+- untrusted_path(path) shows a path the same way, but complete (up to PATH_LIMIT characters):
+  a cut-off location makes a message useless; the escaping is what protects.
 - SafeFormatter escapes control characters (newline, carriage return, ANSI escape codes)
   in every message, so one record is always one line and cannot recolour a terminal.
 """
@@ -29,6 +31,7 @@ FILE_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"  # ISO 8601 with UTC offset
 
 # C0 and C1 control characters (includes \n, \r, \t and ESC, which starts ANSI codes)
 _CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+PATH_LIMIT = 4096  # PATH_MAX on Linux: a real path is never cut off
 _OWN_HANDLER = "_qm_etdac_handler"  # marks handlers created here, so others are never removed
 
 
@@ -41,6 +44,17 @@ def untrusted(value: object, limit: int = 80) -> str:
     if len(text) <= limit:
         return text
     return f"{text[:limit]}... ({len(text)} chars)"
+
+
+def untrusted_path(path: object) -> str:
+    """
+    Show a path inside a message: repr() like untrusted(), but complete up to PATH_LIMIT characters.
+
+    Paths in messages name folders the user gave, or files inside them; cutting them off hides
+    which folder is meant (found in step 6.3). Values read from file contents (hashes, cells,
+    lines) keep the short limit of untrusted().
+    """
+    return untrusted(str(path), limit=PATH_LIMIT)
 
 
 def _escape_control_characters(text: str) -> str:

@@ -82,7 +82,7 @@ from typing import NamedTuple
 import pandas as pd
 
 from .errors import FORMAT_HINT, InputError
-from .logging_setup import untrusted
+from .logging_setup import untrusted, untrusted_path
 from .validation import check_csv_structure, check_csv_values, check_hash
 
 logger = logging.getLogger(__name__)
